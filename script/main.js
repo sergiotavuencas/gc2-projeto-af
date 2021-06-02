@@ -20,6 +20,17 @@ var createScene = function () {
 
   informationsPanel(advancedTexture);
 
+  scene.enablePhysics(
+    new BABYLON.Vector3(0, -9.8, 0),
+    new BABYLON.CannonJSPlugin(false)
+  );
+
+  var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { size: 2 }, scene);
+  sphere.position.y = 2.5;
+  sphere.physicsImpostor = makePhysicsObject(sphere, "sphere", 1, scene);
+
+  createRampStairs("stairs", 5, 0.5);
+
   return scene;
 };
 
@@ -29,7 +40,7 @@ function createCamera() {
     -Math.PI / 2,
     Math.PI / 2.5,
     15,
-    new BABYLON.Vector3(0, 0, 0)
+    new BABYLON.Vector3(0, 0, 5)
   );
   camera.attachControl(canvas, true);
 }
@@ -97,3 +108,241 @@ function informationsPanel(advancedTexture) {
   informationsPanel.addControl(informations);
   advancedTexture.addControl(informationsPanel);
 }
+
+function createGroundRamp(name, depth) {
+  var groundRamp = new BABYLON.Mesh(name);
+
+  var ground = BABYLON.Mesh.CreateGround("ground1", 2, depth, 2, scene);
+  ground.physicsImpostor = makePhysicsObject(ground, "box", 0, scene);
+  ground.material = createTexture("textures/wood2.jpg");
+  groundRamp.addChild(ground);
+
+  var boxLeft = BABYLON.MeshBuilder.CreateBox(
+    "box",
+    { height: 0.35, width: 0.5, depth: depth },
+    scene
+  );
+  boxLeft.position.x = -1.05;
+  boxLeft.position.y = 0.08;
+  boxLeft.material = createTexture("textures/wood1.jpg");
+  boxLeft.physicsImpostor = makePhysicsObject(boxLeft, "box", 0, scene);
+  groundRamp.addChild(boxLeft);
+
+  var boxRight = BABYLON.MeshBuilder.CreateBox(
+    "box",
+    { height: 0.35, width: 0.5, depth: depth },
+    scene
+  );
+  boxRight.position.x = 1.05;
+  boxRight.position.y = 0.08;
+  boxRight.material = createTexture("textures/wood1.jpg");
+  boxRight.physicsImpostor = makePhysicsObject(boxRight, "box", 0, scene);
+  groundRamp.addChild(boxRight);
+
+  return groundRamp;
+}
+
+function createGroundCurve(name) {
+  var groundCurve = new BABYLON.Mesh(name);
+
+  var ground = BABYLON.Mesh.CreateGround("ground1", 2, 2, 2, scene);
+  ground.physicsImpostor = makePhysicsObject(ground, "box", 0, scene);
+  ground.material = createTexture("textures/wood2.jpg");
+  groundCurve.addChild(ground);
+
+  var boxLeft = BABYLON.MeshBuilder.CreateBox(
+    "box",
+    { height: 0.5, width: 0.5, depth: 2 },
+    scene
+  );
+  boxLeft.position.x = -1.05;
+  boxLeft.material = createTexture("textures/wood1.jpg");
+  boxLeft.physicsImpostor = makePhysicsObject(boxLeft, "box", 0, scene);
+  groundCurve.addChild(boxLeft);
+
+  var boxTop = BABYLON.MeshBuilder.CreateBox(
+    "box",
+    { height: 0.5, width: 2.3, depth: 0.5 },
+    scene
+  );
+  boxTop.position.x = -0.15;
+  boxTop.position.z = 1.1;
+  boxTop.material = createTexture("textures/wood1.jpg");
+  boxTop.physicsImpostor = makePhysicsObject(boxTop, "box", 0, scene);
+  groundCurve.addChild(boxTop);
+
+  var boxRight = BABYLON.MeshBuilder.CreateBox(
+    "box",
+    { height: 0.5, width: 0.5, depth: 0.75 },
+    scene
+  );
+  boxRight.position.x = 1.05;
+  boxRight.position.z = -0.65;
+  boxRight.material = createTexture("textures/wood1.jpg");
+  boxRight.physicsImpostor = makePhysicsObject(boxRight, "box", 0, scene);
+  groundCurve.addChild(boxRight);
+
+  return groundCurve;
+}
+
+function createCapsuleRamp(name, depth) {
+  var capsuleRamp = new BABYLON.Mesh(name);
+
+  var capsuleLeft = new BABYLON.MeshBuilder.CreateCapsule("capsule", {
+    radius: 0.3,
+    capSubdivisions: 6,
+    subdivisions: 6,
+    tessellation: 36,
+    height: depth,
+    orientation: BABYLON.Vector3.Forward(),
+  });
+  capsuleLeft.position.x = -0.45;
+  capsuleLeft.material = createTexture("textures/metal.jpg");
+  capsuleLeft.physicsImpostor = makePhysicsObject(capsuleLeft, "", 0, scene);
+  capsuleRamp.addChild(capsuleLeft);
+
+  var capsuleRight = new BABYLON.MeshBuilder.CreateCapsule("capsule", {
+    radius: 0.3,
+    capSubdivisions: 6,
+    subdivisions: 6,
+    tessellation: 36,
+    height: depth,
+    orientation: BABYLON.Vector3.Forward(),
+  });
+  capsuleRight.position.x = 0.45;
+  capsuleRight.material = createTexture("textures/metal.jpg");
+  capsuleRight.physicsImpostor = makePhysicsObject(capsuleRight, "", 0, scene);
+  capsuleRamp.addChild(capsuleRight);
+
+  return capsuleRamp;
+}
+
+function createSimpleStairs(name, steps, yDistance) {
+  var simpleStairs = new BABYLON.Mesh(name);
+  var box;
+  var posY = 0;
+  var posZ = 0;
+
+  for (var i = 0; i < steps; i++) {
+    box = BABYLON.MeshBuilder.CreateBox(
+      "box",
+      { height: 0.5, width: 2.5, depth: 0.5 },
+      scene
+    );
+    box.position.y = posY;
+    box.position.z = posZ;
+    box.material = createTexture("textures/concrete.jpg");
+    box.physicsImpostor = makePhysicsObject(box, "box", 0, scene);
+    simpleStairs.addChild(box);
+
+    posY -= yDistance;
+    posZ -= 0.5;
+  }
+
+  return simpleStairs;
+}
+
+function createRampStairs(name, steps, zDistance) {
+  var rampStairs = new BABYLON.Mesh(name);
+  var cylinder;
+  var posY = 0;
+  var posZ = 0;
+  var diameter = 1;
+
+  for (var i = 0; i < steps; i++) {
+    cylinder = BABYLON.MeshBuilder.CreateCylinder(
+      "cylinder",
+      { height: 0.1, diameter: (diameter += 0.2) },
+      scene
+    );
+    cylinder.position.y = posY;
+    cylinder.position.z = posZ;
+    cylinder.rotation.x = -0.1;
+    cylinder.material = createTexture("textures/glass.jpg");
+    cylinder.physicsImpostor = makePhysicsObject(
+      cylinder,
+      "cylinder",
+      0,
+      scene
+    );
+    rampStairs.addChild(cylinder);
+
+    posY -= 0.15;
+    posZ -= zDistance;
+  }
+
+  return rampStairs;
+}
+
+function createTexture(path) {
+  const material = new BABYLON.StandardMaterial("texture");
+  material.diffuseTexture = new BABYLON.Texture(path);
+  return material;
+}
+
+var makePhysicsObject = (object, type, mass, scene) => {
+  if (type == "sphere") {
+    object.physicsImpostor = new BABYLON.PhysicsImpostor(
+      object,
+      BABYLON.PhysicsImpostor.SphereImpostor,
+      { mass: mass, friction: 0.5, restitution: 0.7 },
+      scene
+    );
+  } else if (type == "box") {
+    object.physicsImpostor = new BABYLON.PhysicsImpostor(
+      object,
+      BABYLON.PhysicsImpostor.BoxImpostor,
+      { mass: mass, friction: 0.5, restitution: 0.7 },
+      scene
+    );
+  } else {
+    object.physicsImpostor = new BABYLON.PhysicsImpostor(
+      object,
+      BABYLON.PhysicsImpostor.MeshImpostor,
+      { mass: mass, friction: 0.5, restitution: 0.7 },
+      scene
+    );
+  }
+};
+
+var makePhysicsMeshes = (newMeshes, scene, scaling) => {
+  var physicsRoot = new BABYLON.Mesh("physicsRoot", scene);
+  physicsRoot.position.y -= 0.9;
+
+  newMeshes.forEach((m) => {
+    if (m.name.indexOf("box") != -1) {
+      m.isVisible = false;
+      physicsRoot.addChild(m);
+    }
+  });
+
+  newMeshes.forEach((m, i) => {
+    if (m.parent == null) {
+      physicsRoot.addChild(m);
+    }
+  });
+
+  physicsRoot.getChildMeshes().forEach((m) => {
+    if (m.name.indexOf("box") != -1) {
+      m.scaling.x = Math.abs(m.scaling.x);
+      m.scaling.y = Math.abs(m.scaling.y);
+      m.scaling.z = Math.abs(m.scaling.z);
+      m.physicsImpostor = new BABYLON.PhysicsImpostor(
+        m,
+        BABYLON.PhysicsImpostor.SphereImpostor,
+        { mass: 0.1 },
+        scene
+      );
+    }
+  });
+
+  physicsRoot.scaling.scaleInPlace(scaling);
+  physicsRoot.physicsImpostor = new BABYLON.PhysicsImpostor(
+    physicsRoot,
+    BABYLON.PhysicsImpostor.NoImpostor,
+    { mass: 3 },
+    scene
+  );
+
+  return physicsRoot;
+};
