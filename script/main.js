@@ -259,6 +259,7 @@ function createRampStairs(name, steps, zDistance) {
     cylinder.position.z = posZ;
     cylinder.rotation.x = -0.1;
     cylinder.material = createTexture("textures/glass.jpg");
+    cylinder.alpha=0.1;
     cylinder.physicsImpostor = makePhysicsObject(
       cylinder,
       "cylinder",
@@ -278,6 +279,125 @@ function createTexture(path) {
   const material = new BABYLON.StandardMaterial("texture");
   material.diffuseTexture = new BABYLON.Texture(path);
   return material;
+}
+
+function seesaw(scale,posX,posY,posZ){
+  var b = BABYLON.MeshBuilder.CreateBox("topoFundo",{
+      width:7*scale,
+      height:0.2*scale,
+      depth:1*scale
+  });
+  b.position.x = posX;
+  b.position.y = posY;
+  b.position.z = posZ;
+  b.PhysicsImpostor = new BABYLON.PhysicsImpostor(b,BABYLON.PhysicsImpostor.BoxImpostor,{mass: 2},scene)
+  //b.rotation.x+=Math.PI/2
+
+  var mat = new BABYLON.StandardMaterial("metalic", scene);
+  mat.diffuseTexture = new BABYLON.Texture("textures/wood2.jpg", scene);
+  b.material = mat;
+  
+var c = BABYLON.MeshBuilder.CreateBox("topoFundo",{
+      width:1*scale,
+      height:1*scale,
+      depth:1*scale
+  });
+  c.position.x = posX;
+  c.position.y = posY-1;
+  c.position.z = posZ;
+  c.rotation.x+=Math.PI/4
+  c.rotation.y+=Math.PI/2
+
+  c.PhysicsImpostor = new BABYLON.PhysicsImpostor(c,BABYLON.PhysicsImpostor.BoxImpostor,{mass: 0},scene)
+  
+  var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.HingeJoint, {
+  mainPivot: new BABYLON.Vector3(0, 0, 0),
+      connectedPivot: new BABYLON.Vector3(0, -1, 0),
+      mainAxis: new BABYLON.Vector3(0, 0, 0),
+      connectedAxis: new BABYLON.Vector3(0, 0, 1),
+  }); 
+
+  c.PhysicsImpostor.addJoint(b.PhysicsImpostor,joint)
+}
+function domino(scale,posX,posY,posZ){
+
+  var material = new BABYLON.StandardMaterial("dominoTexture");
+  material.diffuseTexture = new BABYLON.Texture("/textures/domino.png");
+  
+  const faceUV = [];
+  faceUV[2] = new BABYLON.Vector4(0.0, 0.0, 1.0, 1.0); //rear face
+  faceUV[3] = new BABYLON.Vector4(0.0, 0.0, 1.0, 1.0); //front face
+  
+  faceUV[0] = new BABYLON.Vector4(0.0, 0.0, 0.0, 0.0); 
+  faceUV[1] = new BABYLON.Vector4(0.0, 0.0, 0.0, 0.0); 
+  faceUV[4] = new BABYLON.Vector4(0.0, 0.0, 0.0, 0.0); 
+  faceUV[5] = new BABYLON.Vector4(0.0, 0.0, 0.0, 0.0); 
+
+  var domino = BABYLON.MeshBuilder.CreateBox("domino",{
+      width:0.3*scale,
+      height:2*scale,
+      depth:1*scale,
+      faceUV: faceUV
+  });
+
+  domino.position.x = posX; 
+  domino.position.y = posY+scale;
+  domino.position.z = posZ;
+
+  domino.material = material;
+
+  domino.physicsImpostor = new BABYLON.PhysicsImpostor(
+      domino, 
+      BABYLON.PhysicsImpostor.BoxImpostor, 
+      {mass: 1},
+      scene);
+}
+
+function baloon(scale,posX,posY,posZ){
+  var b = BABYLON.MeshBuilder.CreateSphere("baloon",{
+      diameter:1*scale,
+      segments:32 
+  });
+
+  b.position.x = posX;
+  b.position.y = posY;
+  b.position.z = posZ;
+  
+  //pontos
+  const p = [
+      //ponto inicio
+      new BABYLON.Vector3(
+          b.position.x,
+          b.position.y-(scale/2),//inicia na base da esfera
+          b.position.z
+          ),
+      //ponto fim
+      new BABYLON.Vector3(
+          b.position.x,
+          b.position.y-5,//comprimento da linha
+          b.position.z
+          )
+  ]
+
+  var fio = BABYLON.MeshBuilder.CreateLines("fio",{points:p});
+
+  var n = Math.random()*10;
+  var mat = new BABYLON.StandardMaterial("material", scene);
+  if(n<=3){
+      mat.diffuseColor = new BABYLON.Color3(1, 0, 0);//vemelho
+      mat.alpha = 0.7;	
+      b.material = mat;
+  }
+  else if(n>3 && n<=7){
+      mat.diffuseColor = new BABYLON.Color3(0, 1, 0);//verde
+      mat.alpha = 0.7;	
+      b.material = mat;
+  }else{
+      mat.diffuseColor = new BABYLON.Color3(0, 0, 1);//azul
+      mat.alpha = 0.7;
+      b.material = mat;
+  }
+
 }
 
 var makePhysicsObject = (object, type, mass, scene) => {
