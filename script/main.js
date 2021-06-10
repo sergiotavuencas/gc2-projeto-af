@@ -18,7 +18,7 @@ var createScene = function () {
     -Math.PI / 2,
     Math.PI / 2.5,
     25,
-    new BABYLON.Vector3(0, 0, 5)
+    new BABYLON.Vector3(0, 0, 0)
   );
   camera.attachControl(canvas, true);
 
@@ -37,6 +37,9 @@ var createScene = function () {
   );
 
   createRubeGoldbergMachine(scene);
+  sphere = BABYLON.MeshBuilder.CreateSphere("sphere", scene);
+  sphere.position.y = 1;
+  sphere.physicsImpostor = makePhysicsObject(sphere, "sphere", 1, scene);
 
   return scene;
 };
@@ -73,6 +76,7 @@ window.addEventListener("resize", function () {
   engine.resize();
 });
 
+// Cria os elementos gráficos com as informações do grupo
 function informationsPanel(advancedTexture) {
   var informationsPanel = new BABYLON.GUI.Rectangle();
   informationsPanel.width = 0.22;
@@ -98,16 +102,69 @@ function informationsPanel(advancedTexture) {
   advancedTexture.addControl(informationsPanel);
 }
 
+// Cria a máquina de Rube Goldberg
 function createRubeGoldbergMachine(scene) {
-  //var stairs = createSimpleStairs("stairs", 5, 0.5, 2, 0.25);
-  var ramp = createRamp("ramp", 6);
+  var rubeGoldbergMachine = new BABYLON.Mesh("RubeGoldbergMachine");
+  //var stairs = createStairs("stairs", 5, 0.5, 2, 0.25);
+  //var rounded = createRoundedStairs("rounded", 5, 0.5);
+  //var ramp = createRamp("ramp", 6);
   //rotationAnimation(ramp, "x", 64, 0.025);
   //contractAnimation(stairs, "z", 1000);
-  //rotationAnimation(stairs, "x", 64, 0.098);
+  //rotationAnimation(rounded, "y", 64, 0.098);
+  rubeGoldbergMachine.addChild(createStart("start")).scaling.scaleInPlace(0.6);
+  rubeGoldbergMachine.addChild(createStartingPaths("startingPaths"));
+
+  return rubeGoldbergMachine;
 }
 
-function createRamp(name, depth) {
-  var groundRamp = new BABYLON.Mesh(name);
+// Criação da plataforma de início
+function createStart(name) {
+  var start = new BABYLON.Mesh(name);
+
+  var box = BABYLON.MeshBuilder.CreateBox("box", { height: 0.25 }, scene);
+  box.physicsImpostor = makePhysicsObject(box, "mesh", 0, scene);
+  box.material = createTexture("textures/concrete.jpg");
+  start.addChild(box);
+
+  for (i = 0; i < 2; i++) {
+    for (j = 0; j < 2; j++) {
+      var stairs = createStairs("startStairs", 4, 0.25, 1, 0.25);
+      var pos =
+        j == 0
+          ? -0.5
+          : 0.5; /* Se j == 0, posiciona as escadas no eixo X ou Z nos limites do box */
+
+      /* Se i == 0, posiciona as escadas nas laterais, senão na frontal e traseira */
+      if (i == 0) {
+        stairs.position.x = pos;
+        stairs.rotation.y =
+          j == 0
+            ? Math.PI / 2
+            : -Math.PI / 2; /* Rotaciona de acordo com o sentido */
+      } else {
+        stairs.position.z = pos;
+        stairs.rotation.y =
+          j == 0 ? 0 : -Math.PI; /* Rotaciona de acordo com o sentido */
+      }
+      start.addChild(stairs);
+    }
+  }
+
+  /* Inicia a animação de rotação do conjunto */
+  rotationAnimation(start, "y", 64, 0.025, true);
+
+  return start;
+}
+
+function createStartingPaths(name) {
+  var startingPaths = new BABYLON.Mesh(name);
+
+  return startingPaths;
+}
+
+// Cria uma plataforma utilizando boxes e aplicando física
+function createPlatform(name, depth) {
+  var platform = new BABYLON.Mesh(name);
 
   var ground = BABYLON.MeshBuilder.CreateBox(
     "ground",
@@ -116,7 +173,7 @@ function createRamp(name, depth) {
   );
   ground.physicsImpostor = makePhysicsObject(ground, "box", 0, scene);
   ground.material = createTexture("textures/wood2.jpg");
-  groundRamp.addChild(ground);
+  platform.addChild(ground);
 
   var boxLeft = BABYLON.MeshBuilder.CreateBox(
     "box",
@@ -127,7 +184,7 @@ function createRamp(name, depth) {
   boxLeft.position.y = 0.08;
   boxLeft.material = createTexture("textures/wood1.jpg");
   boxLeft.physicsImpostor = makePhysicsObject(boxLeft, "box", 0, scene);
-  groundRamp.addChild(boxLeft);
+  platform.addChild(boxLeft);
 
   var boxRight = BABYLON.MeshBuilder.CreateBox(
     "box",
@@ -138,9 +195,9 @@ function createRamp(name, depth) {
   boxRight.position.y = 0.08;
   boxRight.material = createTexture("textures/wood1.jpg");
   boxRight.physicsImpostor = makePhysicsObject(boxRight, "box", 0, scene);
-  groundRamp.addChild(boxRight);
+  platform.addChild(boxRight);
 
-  return groundRamp;
+  return platform;
 }
 
 function createGroundCurve(name) {
@@ -218,7 +275,8 @@ function createCapsuleRamp(name, depth) {
   return capsuleRamp;
 }
 
-function createSimpleStairs(name, steps, height, width, depth) {
+// Cria uma escada de boxes com a quantidade de degraus específicada e suas dimensões
+function createStairs(name, steps, height, width, depth) {
   var simpleStairs = new BABYLON.Mesh(name);
   var box;
   var posY = 0;
@@ -243,6 +301,7 @@ function createSimpleStairs(name, steps, height, width, depth) {
   return simpleStairs;
 }
 
+// Cria uma escada de cilindros com a quantidade de degraus específicada e a distância entre eles
 function createRoundedStairs(name, steps, zDistance) {
   var roundedStairs = new BABYLON.Mesh(name);
   var cylinder;
@@ -275,6 +334,7 @@ function createRoundedStairs(name, steps, zDistance) {
   return roundedStairs;
 }
 
+// Cria a textura para o objeto
 function createTexture(path) {
   const material = new BABYLON.StandardMaterial("texture");
   material.diffuseTexture = new BABYLON.Texture(path);
@@ -409,6 +469,7 @@ function baloon(scale, posX, posY, posZ) {
   }
 }
 
+// Cria a física do objeto
 var makePhysicsObject = (object, type, mass, scene) => {
   if (type == "sphere") {
     object.physicsImpostor = new BABYLON.PhysicsImpostor(
@@ -434,33 +495,56 @@ var makePhysicsObject = (object, type, mass, scene) => {
   }
 };
 
-function getMeshesPositions(meshes, axis) {
+// Armazena as posições ou rotações de acordo com o eixo dos objetos, e retorna um array
+function getMeshesPosAndRot(meshes, axis, get) {
   var positions = [];
 
   if (axis == "x") {
     meshes.getChildMeshes().forEach(function (mesh) {
-      positions.push(mesh.position.x);
+      if (get == "position") {
+        positions.push(mesh.position.x);
+      } else {
+        positions.push(mesh.rotation.x);
+      }
     });
   } else if (axis == "y") {
     meshes.getChildMeshes().forEach(function (mesh) {
-      positions.push(mesh.position.y);
+      if (get == "position") {
+        positions.push(mesh.position.y);
+      } else {
+        positions.push(mesh.rotation.y);
+      }
     });
   } else {
     meshes.getChildMeshes().forEach(function (mesh) {
-      positions.push(mesh.position.z);
+      if (get == "position") {
+        positions.push(mesh.position.z);
+      } else {
+        positions.push(mesh.rotation.z);
+      }
     });
   }
 
   return positions;
 }
 
-function contractAnimation(meshes, axis, miliseconds) {
-  var firstCount = miliseconds;
-  var positions = getMeshesPositions(meshes, axis);
-  var position = axis == "y" ? meshes.position.y : meshes.position.z;
+// Animação de contração para a mesh especificada
+function contractAnimation(meshes, axis, seconds) {
+  var firstCount =
+    seconds * 1000; /* Recebe os segundos e converte para milisegundos */
+  var positions = getMeshesPosAndRot(
+    meshes,
+    axis,
+    "position"
+  ); /* Array com as posições ou rotação de cada mesh no eixo especificado */
+  var position =
+    axis == "y"
+      ? meshes.position.y
+      : meshes.position.z; /* Posição da mesh no eixo especificado */
 
   var animation = new BABYLON.Animation(
     "animation",
+    /* Posiciona de acordo com o eixo recebido */
     axis == "y" ? "position.y" : "position.z",
     100,
     BABYLON.Animation.ANIMATIONTYPE_FLOAT,
@@ -477,10 +561,11 @@ function contractAnimation(meshes, axis, miliseconds) {
     });
     frame += 5;
   }
+  animation.setKeys(keyFrames);
 
+  /* Anima cada mesh dentro de um intervalo de tempo + 1 segundo */
   meshes.getChildMeshes().forEach((mesh) => {
     setTimeout(function () {
-      animation.setKeys(keyFrames);
       scene.beginDirectAnimation(mesh, [animation], 0, 15, true);
     }, (firstCount += 1000));
   });
@@ -488,6 +573,7 @@ function contractAnimation(meshes, axis, miliseconds) {
   var count = 0;
   var secondCount = firstCount;
 
+  /* Retorna cada mesh para sua posição anterior após um período de tempo */
   setTimeout(function () {
     meshes.getChildMeshes().forEach((mesh) => {
       if (axis == "y") {
@@ -500,13 +586,18 @@ function contractAnimation(meshes, axis, miliseconds) {
   }, (secondCount += 1000));
 }
 
-function rotationAnimation(meshes, axis, frames, rotationIncrement) {
+// Animação de rotação para a mesh especificada
+function rotationAnimation(meshes, axis, frames, rotationIncrement, loop) {
   var animation = new BABYLON.Animation(
     "animation",
-    axis == "y" ? "rotation.y" : axis == "x" ? "rotation.x" : "rotation.z",
+    /* Rotaciona de acordo com o eixo recebido */
+    axis == "x" ? "rotation.x" : axis == "y" ? "rotation.y" : "rotation.z",
     100,
     BABYLON.Animation.ANIMATIONTYPE_FLOAT,
-    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    /* Se loop for verdadeiro, a animação é contínua, senão para no último frame */
+    loop == true
+      ? BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+      : BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
   );
 
   let keyFrames = [];
@@ -517,10 +608,11 @@ function rotationAnimation(meshes, axis, frames, rotationIncrement) {
     keyFrames.push({
       frame: frame,
       value:
-        axis == "y"
-          ? meshes.rotation.y + (rotation += rotationIncrement)
-          : axis == "x"
+        /* Rotaciona de acordo com o eixo e a velocidade especificados */
+        axis == "x"
           ? meshes.rotation.x + (rotation += rotationIncrement)
+          : axis == "y"
+          ? meshes.rotation.y + (rotation += rotationIncrement)
           : meshes.rotation.z + (rotation += rotationIncrement),
     });
     frame += 5;
