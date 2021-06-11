@@ -37,9 +37,14 @@ var createScene = function () {
   );
 
   createRubeGoldbergMachine(scene);
-  sphere = BABYLON.MeshBuilder.CreateSphere("sphere", scene);
-  sphere.position.y = 1;
-  sphere.physicsImpostor = makePhysicsObject(sphere, "sphere", 1, scene);
+
+  setTimeout(function () {
+    sphere = BABYLON.MeshBuilder.CreateSphere("sphere", scene);
+    //sphere.position.x = 2;
+    sphere.position.y = 1;
+    sphere.position.z = -0.3;
+    sphere.physicsImpostor = makePhysicsObject(sphere, "sphere", 1, scene);
+  }, 2000);
 
   return scene;
 };
@@ -105,97 +110,186 @@ function informationsPanel(advancedTexture) {
 // Cria a máquina de Rube Goldberg
 function createRubeGoldbergMachine(scene) {
   var rubeGoldbergMachine = new BABYLON.Mesh("RubeGoldbergMachine");
-  //var stairs = createStairs("stairs", 5, 0.5, 2, 0.25);
-  //var rounded = createRoundedStairs("rounded", 5, 0.5);
-  //var ramp = createRamp("ramp", 6);
-  //rotationAnimation(ramp, "x", 64, 0.025);
-  //contractAnimation(stairs, "z", 1000);
-  //rotationAnimation(rounded, "y", 64, 0.098);
-  rubeGoldbergMachine.addChild(createStart("start")).scaling.scaleInPlace(0.6);
-  rubeGoldbergMachine.addChild(createStartingPaths("startingPaths"));
+
+  // var firstModel = createFirstModel("firstModel");
+  // rubeGoldbergMachine.addChild(firstModel);
+
+  var secondModel = createSecondModel("secondModel");
+  rubeGoldbergMachine.addChild(secondModel);
 
   return rubeGoldbergMachine;
 }
 
-// Criação da plataforma de início
-function createStart(name) {
-  var start = new BABYLON.Mesh(name);
+// Criação do modelo três rampas
+function createFirstModel(name) {
+  var firstModel = new BABYLON.Mesh(name);
 
-  var box = BABYLON.MeshBuilder.CreateBox("box", { height: 0.25 }, scene);
-  box.physicsImpostor = makePhysicsObject(box, "mesh", 0, scene);
-  box.material = createTexture("textures/concrete.jpg");
-  start.addChild(box);
+  var firstRamp = createPlatform("firstRamp", 2, 6, true, true, false, false);
+  firstRamp.rotation.x = -0.5;
+  firstModel.addChild(firstRamp);
 
-  for (i = 0; i < 2; i++) {
-    for (j = 0; j < 2; j++) {
-      var stairs = createStairs("startStairs", 4, 0.25, 1, 0.25);
-      var pos =
-        j == 0
-          ? -0.5
-          : 0.5; /* Se j == 0, posiciona as escadas no eixo X ou Z nos limites do box */
+  var firstPlatform = createPlatform(
+    "firstPlatform",
+    2,
+    5,
+    false,
+    true,
+    true,
+    true
+  );
+  firstPlatform.rotation.x = 0.25;
+  firstPlatform.rotation.y = Math.PI / 2;
+  firstPlatform.position.x = 1.5;
+  firstPlatform.position.y = -2;
+  firstPlatform.position.z = -3.95;
+  firstModel.addChild(firstPlatform);
 
-      /* Se i == 0, posiciona as escadas nas laterais, senão na frontal e traseira */
-      if (i == 0) {
-        stairs.position.x = pos;
-        stairs.rotation.y =
-          j == 0
-            ? Math.PI / 2
-            : -Math.PI / 2; /* Rotaciona de acordo com o sentido */
-      } else {
-        stairs.position.z = pos;
-        stairs.rotation.y =
-          j == 0 ? 0 : -Math.PI; /* Rotaciona de acordo com o sentido */
-      }
-      start.addChild(stairs);
-    }
-  }
+  var secondRamp = createPlatform("secondRamp", 2, 6, true, true, false, false);
+  secondRamp.rotation.x = 0.5;
+  secondRamp.position.x = 3;
+  secondRamp.position.y = -4.5;
+  firstModel.addChild(secondRamp);
 
-  /* Inicia a animação de rotação do conjunto */
-  rotationAnimation(start, "y", 64, 0.025, true);
+  var firstPlatform = createPlatform(
+    "firstPlatform",
+    2,
+    5,
+    false,
+    true,
+    true,
+    true
+  );
+  firstPlatform.rotation.x = 0.25;
+  firstPlatform.rotation.y = -Math.PI / 2;
+  firstPlatform.position.x = 1.5;
+  firstPlatform.position.y = -6.75;
+  firstPlatform.position.z = 3.95;
+  firstModel.addChild(firstPlatform);
 
-  return start;
+  return firstModel;
 }
 
-function createStartingPaths(name) {
-  var startingPaths = new BABYLON.Mesh(name);
+// Criação do modelo três escadas
+function createSecondModel(name) {
+  var secondModel = new BABYLON.Mesh(name);
 
-  return startingPaths;
+  var firstStair = createStairs("firstStair", 10, 0.35, 2, 0.5);
+  secondModel.addChild(firstStair);
+
+  var firstPlatform = createPlatform(
+    "firstPlatform",
+    2,
+    6,
+    false,
+    true,
+    true,
+    true
+  );
+  firstPlatform.rotation.x = 0.15;
+  firstPlatform.rotation.y = Math.PI / 2;
+  firstPlatform.position.x = 1.8;
+  firstPlatform.position.y = -3.85;
+  firstPlatform.position.z = -5.8;
+  secondModel.addChild(firstPlatform);
+
+  var secondStair = createStairs("secondStair", 10, 0.35, 2, 0.5);
+  secondStair.rotation.y = Math.PI;
+  secondStair.position.x = 3.65;
+  secondStair.position.y = -4.5;
+  secondStair.position.z = -4.5;
+  secondModel.addChild(secondStair);
+
+  var secondPlatform = createPlatform(
+    "secondPlatform",
+    2,
+    6,
+    false,
+    true,
+    true,
+    true
+  );
+  secondPlatform.rotation.x = 0.15;
+  secondPlatform.rotation.y = -Math.PI / 2;
+  secondPlatform.position.x = 1.8;
+  secondPlatform.position.y = -8;
+  secondPlatform.position.z = 1.35;
+  secondModel.addChild(secondPlatform);
+
+  return secondModel;
 }
 
 // Cria uma plataforma utilizando boxes e aplicando física
-function createPlatform(name, depth) {
+function createPlatform(
+  name,
+  width,
+  depth,
+  limitLeft,
+  limitRight,
+  limitBottom,
+  limitUp
+) {
   var platform = new BABYLON.Mesh(name);
 
   var ground = BABYLON.MeshBuilder.CreateBox(
     "ground",
-    { height: 0.1, width: 1.6, depth: depth },
+    { height: 0.1, width: width, depth: depth },
     scene
   );
   ground.physicsImpostor = makePhysicsObject(ground, "box", 0, scene);
   ground.material = createTexture("textures/wood2.jpg");
   platform.addChild(ground);
 
-  var boxLeft = BABYLON.MeshBuilder.CreateBox(
-    "box",
-    { height: 0.35, width: 0.5, depth: depth },
-    scene
-  );
-  boxLeft.position.x = -1.05;
-  boxLeft.position.y = 0.08;
-  boxLeft.material = createTexture("textures/wood1.jpg");
-  boxLeft.physicsImpostor = makePhysicsObject(boxLeft, "box", 0, scene);
-  platform.addChild(boxLeft);
+  if (limitLeft) {
+    var boxLeft = BABYLON.MeshBuilder.CreateBox(
+      "box",
+      { height: 0.75, width: 0.35, depth: depth },
+      scene
+    );
+    boxLeft.position.x = -width / 1.8;
+    boxLeft.position.y = 0.12;
+    boxLeft.material = createTexture("textures/wood1.jpg");
+    boxLeft.physicsImpostor = makePhysicsObject(boxLeft, "box", 0, scene);
+    platform.addChild(boxLeft);
+  }
 
-  var boxRight = BABYLON.MeshBuilder.CreateBox(
-    "box",
-    { height: 0.35, width: 0.5, depth: depth },
-    scene
-  );
-  boxRight.position.x = 1.05;
-  boxRight.position.y = 0.08;
-  boxRight.material = createTexture("textures/wood1.jpg");
-  boxRight.physicsImpostor = makePhysicsObject(boxRight, "box", 0, scene);
-  platform.addChild(boxRight);
+  if (limitRight) {
+    var boxRight = BABYLON.MeshBuilder.CreateBox(
+      "box",
+      { height: 0.75, width: 0.35, depth: depth },
+      scene
+    );
+    boxRight.position.x = width / 1.8;
+    boxRight.position.y = 0.12;
+    boxRight.material = createTexture("textures/wood1.jpg");
+    boxRight.physicsImpostor = makePhysicsObject(boxRight, "box", 0, scene);
+    platform.addChild(boxRight);
+  }
+
+  if (limitBottom) {
+    var boxBottom = BABYLON.MeshBuilder.CreateBox(
+      "box",
+      { height: 0.75, width: width, depth: 0.35 },
+      scene
+    );
+    boxBottom.position.z = -depth / 1.9;
+    boxBottom.position.y = 0.12;
+    boxBottom.material = createTexture("textures/wood1.jpg");
+    boxBottom.physicsImpostor = makePhysicsObject(boxBottom, "box", 0, scene);
+    platform.addChild(boxBottom);
+  }
+
+  if (limitUp) {
+    var boxUp = BABYLON.MeshBuilder.CreateBox(
+      "box",
+      { height: 0.75, width: width, depth: 0.35 },
+      scene
+    );
+    boxUp.position.z = depth / 1.9;
+    boxUp.position.y = 0.12;
+    boxUp.material = createTexture("textures/wood1.jpg");
+    boxUp.physicsImpostor = makePhysicsObject(boxUp, "box", 0, scene);
+    platform.addChild(boxUp);
+  }
 
   return platform;
 }
@@ -290,7 +384,7 @@ function createStairs(name, steps, height, width, depth) {
     );
     box.position.y = posY;
     box.position.z = posZ;
-    box.material = createTexture("textures/concrete.jpg");
+    box.material = createTexture("textures/wood2.jpg");
     box.physicsImpostor = makePhysicsObject(box, "box", 0, scene);
     simpleStairs.addChild(box);
 
