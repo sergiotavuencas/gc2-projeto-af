@@ -435,6 +435,67 @@ function createTexture(path) {
   return material;
 }
 
+function fountain(posX,posY,posZ){
+  var particle = new BABYLON.ParticleSystem("particles", 5000);
+
+  //Texture of each particle
+  particle.particleTexture = new BABYLON.Texture("textures/flare.png");
+
+  // Where the particles come from
+  particle.emitter = new BABYLON.Vector3(0+posX, 0.8+posY, 0+posZ); // emitted from the top of the fountain
+  particle.minEmitBox = new BABYLON.Vector3(-0.01, 0, -0.01); // Starting all from
+  particle.maxEmitBox = new BABYLON.Vector3(0.01, 0, 0.01); // To...
+
+  particle.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 1.0);
+  particle.color2 = new BABYLON.Color4(0.2, 0.5, 1.0, 1.0);
+
+  particle.minSize = 0.01;
+  particle.maxSize = 0.05;
+
+  particle.minLifeTime = 0.3;
+  particle.maxLifeTime = 1.5;
+
+  particle.emitRate = 1500;
+
+  particle.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+
+  particle.gravity = new BABYLON.Vector3(0, -9.81, 0);
+
+  particle.direction1 = new BABYLON.Vector3(-1, 8, 1);
+  particle.direction2 = new BABYLON.Vector3(1, 8, -1);
+
+  particle.minEmitPower = 0.2;
+  particle.maxEmitPower = 0.6;
+  particle.updateSpeed = 0.01;
+
+  var fountainProfile = [
+      new BABYLON.Vector3(0, 0, 0),
+      new BABYLON.Vector3(0.5, 0, 0),
+      new BABYLON.Vector3(0.5, 0.2, 0),
+      new BABYLON.Vector3(0.4, 0.2, 0),
+      new BABYLON.Vector3(0.4, 0.05, 0),
+      new BABYLON.Vector3(0.05, 0.1, 0),
+      new BABYLON.Vector3(0.05, 0.8, 0),
+      new BABYLON.Vector3(0.15, 0.9, 0)
+  ];
+  
+  var fountain = BABYLON.MeshBuilder.CreateLathe("fountain", {shape: fountainProfile, sideOrientation: BABYLON.Mesh.DOUBLESIDE});
+  fountain.position.x = posX;
+  fountain.position.y = posY;
+  fountain.position.z = posZ;
+
+  var w = BABYLON.MeshBuilder.CreateCylinder("water", {diameter: 0.8, height:0.1}, scene);
+  var mat = new BABYLON.StandardMaterial("water", scene);
+  mat.diffuseTexture = new BABYLON.Texture("textures/water.jpg", scene);
+  w.material = mat;
+
+  w.position.x = posX;
+  w.position.y = posY+0.1;
+  w.position.z = posZ;
+
+  particle.start();
+}
+
 function seesaw(scale, posX, posY, posZ) {
   var b = BABYLON.MeshBuilder.CreateBox("topoFundo", {
     width: 7 * scale,
@@ -518,50 +579,124 @@ function domino(scale, posX, posY, posZ) {
   );
 }
 
-function baloon(scale, posX, posY, posZ) {
-  var b = BABYLON.MeshBuilder.CreateSphere("baloon", {
-    diameter: 1 * scale,
-    segments: 32,
-  });
+function baloon(scale,posX,posY,posZ){
+  var baloons = []
+     var b = BABYLON.MeshBuilder.CreateSphere("balao",{
+     diameter:1*scale,
+     segments:32 
+ });
 
-  b.position.x = posX;
-  b.position.y = posY;
-  b.position.z = posZ;
+ b.position.x = posX;
+ b.position.y = posY;
+ b.position.z = posZ;
+ 
+ //pontos
+ const p = [
+     //ponto inicio
+     new BABYLON.Vector3(
+         b.position.x,
+         b.position.y-(scale/2),//inicia na base da esfera
+         b.position.z
+         ),
+     //ponto fim
+     new BABYLON.Vector3(
+         b.position.x,
+         b.position.y-5,//comprimento da linha
+         b.position.z
+         )
+ ]
 
-  //pontos
-  const p = [
-    //ponto inicio
-    new BABYLON.Vector3(
-      b.position.x,
-      b.position.y - scale / 2, //inicia na base da esfera
-      b.position.z
-    ),
-    //ponto fim
-    new BABYLON.Vector3(
-      b.position.x,
-      b.position.y - 5, //comprimento da linha
-      b.position.z
-    ),
-  ];
+ var wire = BABYLON.MeshBuilder.CreateLines("wire",{points:p});
 
-  var fio = BABYLON.MeshBuilder.CreateLines("fio", { points: p });
+ //materiais e transparencias(alpha)
+ var n = Math.random()*10;
+ var mat = new BABYLON.StandardMaterial("material", scene);
+ if(n<=3){
+     mat.diffuseColor = new BABYLON.Color3(1, 0, 0);//vemelho
+     mat.alpha = 0.7;	
+     b.material = mat;
+ }
+ else if(n>3 && n<=7){
+     mat.diffuseColor = new BABYLON.Color3(0, 1, 0);//verde
+     mat.alpha = 0.7;	
+     b.material = mat;
+ }else{
+     mat.diffuseColor = new BABYLON.Color3(0, 0, 1);//azul
+     mat.alpha = 0.7;
+     b.material = mat;
+ }
+ var c = new BABYLON.Mesh("composition");
+ c.addChild(b)
+ c.addChild(wire)
+ c = baloonAnimation(c);
+ return c;
+}
 
-  var n = Math.random() * 10;
-  var mat = new BABYLON.StandardMaterial("material", scene);
-  if (n <= 3) {
-    mat.diffuseColor = new BABYLON.Color3(1, 0, 0); //vemelho
-    mat.alpha = 0.7;
-    b.material = mat;
-  } else if (n > 3 && n <= 7) {
-    mat.diffuseColor = new BABYLON.Color3(0, 1, 0); //verde
-    mat.alpha = 0.7;
-    b.material = mat;
-  } else {
-    mat.diffuseColor = new BABYLON.Color3(0, 0, 1); //azul
-    mat.alpha = 0.7;
-    b.material = mat;
+//Set baloon animation
+function baloonAnimation(b){
+ const frameRate  = 60;
+ const yPos = new BABYLON.Animation("yPos", "position.y", frameRate, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE); //CONSTANT
+ const keyFrames = []; 
+ 
+ keyFrames.push({
+     frame: 0,
+     value: 0
+ });
+
+ keyFrames.push({
+     frame: frameRate,
+     value: 10
+ });
+ keyFrames.push({
+     frame: frameRate*2,
+     value: 20
+ });
+ yPos.setKeys(keyFrames);
+
+ b.animations.push(yPos);
+ //scene.beginAnimation(b, 0,2*frameRate, true);
+ return b;
+}
+//waterfall
+function waterfall(size){
+  for(var i=0;i<size;i++){
+      var particleSystem = new BABYLON.ParticleSystem("particles", 5000, scene);
+
+      particleSystem.particleTexture = new BABYLON.Texture("textures/flare.png", scene);
+
+      particleSystem.emitter = new BABYLON.Vector3(0, 10, 0+i); // the starting object, the emitter
+      particleSystem.minEmitBox = new BABYLON.Vector3(-1, 0, 0); // Starting all from
+      particleSystem.maxEmitBox = new BABYLON.Vector3(1, 0, 0); // To...
+
+      particleSystem.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 1.0);
+      particleSystem.color2 = new BABYLON.Color4(0.2, 0.5, 1.0, 1.0);
+      particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.8, 9.0);
+
+      particleSystem.minSize = 0.1;
+      particleSystem.maxSize = 0.5;
+
+      particleSystem.minLifeTime = 2;
+      particleSystem.maxLifeTime = 3.5;
+
+      particleSystem.emitRate = 300;
+
+      particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+
+      particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+
+      particleSystem.direction1 = new BABYLON.Vector3(-2, -8, 2);
+      particleSystem.direction2 = new BABYLON.Vector3(0, -8, -0);
+
+      particleSystem.minAngularSpeed = 0;
+      particleSystem.maxAngularSpeed = Math.PI;
+
+      particleSystem.minEmitPower = 1;
+      particleSystem.maxEmitPower = 3;
+      particleSystem.updateSpeed = 0.025;
+      particleSystem.start();
   }
 }
+
 
 // Cria a física do objeto
 var makePhysicsObject = (object, type, mass, scene) => {
