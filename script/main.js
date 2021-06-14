@@ -11,6 +11,8 @@ var createDefaultEngine = function () {
   });
 };
 
+var pos = 0;
+
 var createScene = function () {
   scene = new BABYLON.Scene(engine);
   camera = new BABYLON.ArcRotateCamera(
@@ -36,15 +38,26 @@ var createScene = function () {
     new BABYLON.CannonJSPlugin(false)
   );
 
-  createRubeGoldbergMachine(scene);
+  createRubeGoldbergMachine(true);
+
+  var pew = new BABYLON.Sound("pew", "sounds/pew.mp3", scene, null, {
+    loop: false,
+    autoplay: false,
+  });
+
+  var killBox = BABYLON.MeshBuilder.CreateBox(
+    "killBox",
+    { width: 300, depth: 300, height: 0.5 },
+    scene
+  );
+  killBox.position = new BABYLON.Vector3(0, -50, 0);
+  killBox.visibility = 0;
 
   setTimeout(function () {
-    sphere = BABYLON.MeshBuilder.CreateSphere("sphere", scene);
-    //sphere.position.x = 2;
-    sphere.position.y = 1;
-    sphere.position.z = -0.3;
-    sphere.physicsImpostor = makePhysicsObject(sphere, "sphere", 1, scene);
-  }, 2000);
+    var sphere = BABYLON.Mesh.CreateSphere("sphere", 10, 1, scene);
+    sphere.isVisible = false;
+    spawnMarbles(sphere, pew, killBox);
+  }, 3000);
 
   return scene;
 };
@@ -81,6 +94,7 @@ window.addEventListener("resize", function () {
   engine.resize();
 });
 
+/********** Início dos métodos principais **********/
 // Cria os elementos gráficos com as informações do grupo
 function informationsPanel(advancedTexture) {
   var informationsPanel = new BABYLON.GUI.Rectangle();
@@ -108,114 +122,184 @@ function informationsPanel(advancedTexture) {
 }
 
 // Cria a máquina de Rube Goldberg
-function createRubeGoldbergMachine(scene) {
+function createRubeGoldbergMachine(visibleWalls) {
   var rubeGoldbergMachine = new BABYLON.Mesh("RubeGoldbergMachine");
 
-  // var firstModel = createFirstModel("firstModel");
-  // rubeGoldbergMachine.addChild(firstModel);
+  var start = createStartModel("start");
+  rubeGoldbergMachine.addChild(start);
 
-  var secondModel = createSecondModel("secondModel");
+  var paths = createPaths("paths", visibleWalls);
+  rubeGoldbergMachine.addChild(paths);
+
+  var firstModel = createFirstModel("firstModel", visibleWalls);
+  rubeGoldbergMachine.addChild(firstModel);
+
+  var secondModel = createSecondModel("secondModel", visibleWalls);
   rubeGoldbergMachine.addChild(secondModel);
+
+  var thirdModel = createThirdModel("thirdModel", visibleWalls);
+  rubeGoldbergMachine.addChild(thirdModel);
+
+  var fourthModel = createFourthModel("fourthModel");
+  rubeGoldbergMachine.addChild(fourthModel);
 
   return rubeGoldbergMachine;
 }
 
-// Criação do modelo três rampas
-function createFirstModel(name) {
-  var firstModel = new BABYLON.Mesh(name);
+function spawnMarbles(sphereBase, spawnSound, killBox) {
+  var spawnPoints = [
+    new BABYLON.Vector3(0.25, 1, 0),
+    new BABYLON.Vector3(0, 1, 0.25),
+    new BABYLON.Vector3(-0.25, 1, 0),
+    new BABYLON.Vector3(0, 1, -0.25),
+    new BABYLON.Vector3(0.25, 1, 0.25),
+    new BABYLON.Vector3(-0.25, 1, 0.25),
+    new BABYLON.Vector3(0.25, 1, -0.25),
+    new BABYLON.Vector3(-0.25, 1, -0.25),
+  ];
 
-  var firstRamp = createPlatform("firstRamp", 2, 6, true, true, false, false);
-  firstRamp.rotation.x = -0.5;
-  firstModel.addChild(firstRamp);
+  setInterval(function () {
+    if (!scene.isReady()) return;
+    var i = 1;
 
-  var firstPlatform = createPlatform(
-    "firstPlatform",
-    2,
-    5,
-    false,
-    true,
-    true,
-    true
-  );
-  firstPlatform.rotation.x = 0.25;
-  firstPlatform.rotation.y = Math.PI / 2;
-  firstPlatform.position.x = 1.5;
-  firstPlatform.position.y = -2;
-  firstPlatform.position.z = -3.95;
-  firstModel.addChild(firstPlatform);
+    while (i--) {
+      var marble = sphereBase.clone("sphere");
+      marble.position = spawnPoints[pos++];
+      marble.material = marble.physicsImpostor = makePhysicsObject(
+        marble,
+        "sphere",
+        2
+      );
+      marble.isVisible = true;
+      spawnSound.play();
 
-  var secondRamp = createPlatform("secondRamp", 2, 6, true, true, false, false);
-  secondRamp.rotation.x = 0.5;
-  secondRamp.position.x = 3;
-  secondRamp.position.y = -4.5;
-  firstModel.addChild(secondRamp);
+      if (pos == 7) {
+        pos = 0;
+      }
 
-  var firstPlatform = createPlatform(
-    "firstPlatform",
-    2,
-    5,
-    false,
-    true,
-    true,
-    true
-  );
-  firstPlatform.rotation.x = 0.25;
-  firstPlatform.rotation.y = -Math.PI / 2;
-  firstPlatform.position.x = 1.5;
-  firstPlatform.position.y = -6.75;
-  firstPlatform.position.z = 3.95;
-  firstModel.addChild(firstPlatform);
+      marble.actionManager = new BABYLON.ActionManager(scene);
 
-  return firstModel;
+      marble.actionManager.registerAction(
+        new BABYLON.ExecuteCodeAction(
+          {
+            trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+            parameter: killBox,
+          },
+          function () {
+            fadeAndDestroyMarble(marble);
+          }
+        )
+      );
+    }
+  }, 3000);
 }
 
-// Criação do modelo três escadas
-function createSecondModel(name) {
-  var secondModel = new BABYLON.Mesh(name);
+function getRandomArbitrary(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min;
+}
 
-  var firstStair = createStairs("firstStair", 10, 0.35, 2, 0.5);
-  secondModel.addChild(firstStair);
-
-  var firstPlatform = createPlatform(
-    "firstPlatform",
-    2,
-    6,
-    false,
-    true,
-    true,
-    true
+function fadeAndDestroyMarble(marble) {
+  //the one line of code version
+  BABYLON.Animation.CreateAndStartAnimation(
+    "marbleVisAnim",
+    marble,
+    "visibility",
+    30,
+    30,
+    1,
+    0,
+    0,
+    null,
+    () => {
+      marble.dispose();
+    }
   );
-  firstPlatform.rotation.x = 0.15;
-  firstPlatform.rotation.y = Math.PI / 2;
-  firstPlatform.position.x = 1.8;
-  firstPlatform.position.y = -3.85;
-  firstPlatform.position.z = -5.8;
-  secondModel.addChild(firstPlatform);
+}
+/********** Fim dos métodos principais **********/
 
-  var secondStair = createStairs("secondStair", 10, 0.35, 2, 0.5);
-  secondStair.rotation.y = Math.PI;
-  secondStair.position.x = 3.65;
-  secondStair.position.y = -4.5;
-  secondStair.position.z = -4.5;
-  secondModel.addChild(secondStair);
+/********** Início dos modelos **********/
+// Cria a o início
+function createStartModel(name) {
+  var startModel = new BABYLON.Mesh(name);
+  var diameter = 0.5;
+  var posY = 0;
 
-  var secondPlatform = createPlatform(
-    "secondPlatform",
-    2,
-    6,
-    false,
-    true,
-    true,
-    true
-  );
-  secondPlatform.rotation.x = 0.15;
-  secondPlatform.rotation.y = -Math.PI / 2;
-  secondPlatform.position.x = 1.8;
-  secondPlatform.position.y = -8;
-  secondPlatform.position.z = 1.35;
-  secondModel.addChild(secondPlatform);
+  for (let i = 0; i < 8; i++) {
+    var step = BABYLON.MeshBuilder.CreateCylinder(
+      "step",
+      { height: 0.1, diameter: (diameter += 0.2) },
+      scene
+    );
+    step.rotation.y = Math.random();
+    step.position.y = posY;
+    step.material = createTexture("textures/wood2.jpg");
+    step.physicsImpostor = makePhysicsObject(step, "cylinder", 0, scene);
+    startModel.addChild(step);
 
-  return secondModel;
+    posY -= 0.1;
+  }
+
+  const myShape = [
+    new BABYLON.Vector3(0, 0, 0),
+    new BABYLON.Vector3(5, 0, 0),
+    new BABYLON.Vector3(5, 0.5, 0),
+    new BABYLON.Vector3(0, 0.5, 0),
+  ];
+
+  //Create lathe
+  const lathe = BABYLON.MeshBuilder.CreateLathe("lathe", {
+    shape: myShape,
+    radius: 0.5,
+    tessellation: 8,
+    sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+  });
+  lathe.convertToFlatShadedMesh();
+  lathe.position.y -= 1.25;
+  lathe.physicsImpostor = makePhysicsObject(lathe, "mesh", 0, scene);
+  lathe.material = createTexture("textures/wood1.jpg");
+  startModel.addChild(lathe);
+
+  return startModel;
+}
+
+function createPaths(name, visibleWalls) {
+  var paths = new BABYLON.Mesh(name);
+
+  var positions = [
+    { x: -1.95, y: -2, z: 4.65 },
+    { x: -4.7, y: -2, z: 1.9 },
+    { x: -4.7, y: -2, z: -1.9 },
+    { x: -1.95, y: -2, z: -4.65 },
+    { x: 1.95, y: -2, z: -4.65 },
+    { x: 4.7, y: -2, z: -1.9 },
+    { x: 4.7, y: -2, z: 1.9 },
+    { x: 1.95, y: -2, z: 4.65 },
+  ];
+
+  var rotations = [2.75, 1.96, 1.18, 0.4, -0.4, -1.18, -1.96, -2.75];
+
+  for (let i = 0; i < 8; i++) {
+    var platform = createPlatform(
+      "platform",
+      1.5,
+      6,
+      true,
+      true,
+      false,
+      false,
+      visibleWalls
+    );
+    platform.rotation.x = -0.4;
+    platform.rotation.y = rotations[i];
+    platform.position.x = positions[i].x;
+    platform.position.y = positions[i].y;
+    platform.position.z = positions[i].z;
+    paths.addChild(platform);
+  }
+
+  return paths;
 }
 
 // Cria uma plataforma utilizando boxes e aplicando física
@@ -226,12 +310,13 @@ function createPlatform(
   limitLeft,
   limitRight,
   limitBottom,
-  limitUp
+  limitUp,
+  visibleWalls
 ) {
   var platform = new BABYLON.Mesh(name);
 
   var ground = BABYLON.MeshBuilder.CreateBox(
-    "ground",
+    "box",
     { height: 0.1, width: width, depth: depth },
     scene
   );
@@ -242,12 +327,13 @@ function createPlatform(
   if (limitLeft) {
     var boxLeft = BABYLON.MeshBuilder.CreateBox(
       "box",
-      { height: 0.75, width: 0.35, depth: depth },
+      { height: 0.75, width: width / 6, depth: depth },
       scene
     );
     boxLeft.position.x = -width / 1.8;
-    boxLeft.position.y = 0.12;
+    boxLeft.position.y = 0.25;
     boxLeft.material = createTexture("textures/wood1.jpg");
+    boxLeft.visibility = visibleWalls;
     boxLeft.physicsImpostor = makePhysicsObject(boxLeft, "box", 0, scene);
     platform.addChild(boxLeft);
   }
@@ -255,12 +341,13 @@ function createPlatform(
   if (limitRight) {
     var boxRight = BABYLON.MeshBuilder.CreateBox(
       "box",
-      { height: 0.75, width: 0.35, depth: depth },
+      { height: 0.75, width: width / 6, depth: depth },
       scene
     );
     boxRight.position.x = width / 1.8;
-    boxRight.position.y = 0.12;
+    boxRight.position.y = 0.25;
     boxRight.material = createTexture("textures/wood1.jpg");
+    boxRight.visibility = visibleWalls;
     boxRight.physicsImpostor = makePhysicsObject(boxRight, "box", 0, scene);
     platform.addChild(boxRight);
   }
@@ -268,12 +355,13 @@ function createPlatform(
   if (limitBottom) {
     var boxBottom = BABYLON.MeshBuilder.CreateBox(
       "box",
-      { height: 0.75, width: width, depth: 0.35 },
+      { height: 0.75, width: width + 0.4, depth: width / 6 },
       scene
     );
     boxBottom.position.z = -depth / 1.9;
-    boxBottom.position.y = 0.12;
+    boxBottom.position.y = 0.25;
     boxBottom.material = createTexture("textures/wood1.jpg");
+    boxBottom.visibility = visibleWalls;
     boxBottom.physicsImpostor = makePhysicsObject(boxBottom, "box", 0, scene);
     platform.addChild(boxBottom);
   }
@@ -281,12 +369,13 @@ function createPlatform(
   if (limitUp) {
     var boxUp = BABYLON.MeshBuilder.CreateBox(
       "box",
-      { height: 0.75, width: width, depth: 0.35 },
+      { height: 0.75, width: width + 0.4, depth: width / 6 },
       scene
     );
     boxUp.position.z = depth / 1.9;
-    boxUp.position.y = 0.12;
+    boxUp.position.y = 0.25;
     boxUp.material = createTexture("textures/wood1.jpg");
+    boxUp.visibility = visibleWalls;
     boxUp.physicsImpostor = makePhysicsObject(boxUp, "box", 0, scene);
     platform.addChild(boxUp);
   }
@@ -294,51 +383,8 @@ function createPlatform(
   return platform;
 }
 
-function createGroundCurve(name) {
-  var groundCurve = new BABYLON.Mesh(name);
-
-  var ground = BABYLON.Mesh.CreateGround("ground1", 2, 2, 2, scene);
-  ground.physicsImpostor = makePhysicsObject(ground, "box", 0, scene);
-  ground.material = createTexture("textures/wood2.jpg");
-  groundCurve.addChild(ground);
-
-  var boxLeft = BABYLON.MeshBuilder.CreateBox(
-    "box",
-    { height: 0.5, width: 0.5, depth: 2 },
-    scene
-  );
-  boxLeft.position.x = -1.05;
-  boxLeft.material = createTexture("textures/wood1.jpg");
-  boxLeft.physicsImpostor = makePhysicsObject(boxLeft, "box", 0, scene);
-  groundCurve.addChild(boxLeft);
-
-  var boxTop = BABYLON.MeshBuilder.CreateBox(
-    "box",
-    { height: 0.5, width: 2.3, depth: 0.5 },
-    scene
-  );
-  boxTop.position.x = -0.15;
-  boxTop.position.z = 1.1;
-  boxTop.material = createTexture("textures/wood1.jpg");
-  boxTop.physicsImpostor = makePhysicsObject(boxTop, "box", 0, scene);
-  groundCurve.addChild(boxTop);
-
-  var boxRight = BABYLON.MeshBuilder.CreateBox(
-    "box",
-    { height: 0.5, width: 0.5, depth: 0.75 },
-    scene
-  );
-  boxRight.position.x = 1.05;
-  boxRight.position.z = -0.65;
-  boxRight.material = createTexture("textures/wood1.jpg");
-  boxRight.physicsImpostor = makePhysicsObject(boxRight, "box", 0, scene);
-  groundCurve.addChild(boxRight);
-
-  return groundCurve;
-}
-
-function createCapsuleRamp(name, depth) {
-  var capsuleRamp = new BABYLON.Mesh(name);
+function createRoundedRamp(name, depth) {
+  var roundedRamp = new BABYLON.Mesh(name);
 
   var capsuleLeft = new BABYLON.MeshBuilder.CreateCapsule("capsule", {
     radius: 0.3,
@@ -351,7 +397,7 @@ function createCapsuleRamp(name, depth) {
   capsuleLeft.position.x = -0.45;
   capsuleLeft.material = createTexture("textures/metal.jpg");
   capsuleLeft.physicsImpostor = makePhysicsObject(capsuleLeft, "", 0, scene);
-  capsuleRamp.addChild(capsuleLeft);
+  roundedRamp.addChild(capsuleLeft);
 
   var capsuleRight = new BABYLON.MeshBuilder.CreateCapsule("capsule", {
     radius: 0.3,
@@ -364,35 +410,73 @@ function createCapsuleRamp(name, depth) {
   capsuleRight.position.x = 0.45;
   capsuleRight.material = createTexture("textures/metal.jpg");
   capsuleRight.physicsImpostor = makePhysicsObject(capsuleRight, "", 0, scene);
-  capsuleRamp.addChild(capsuleRight);
+  roundedRamp.addChild(capsuleRight);
 
-  return capsuleRamp;
+  return roundedRamp;
 }
 
 // Cria uma escada de boxes com a quantidade de degraus específicada e suas dimensões
-function createStairs(name, steps, height, width, depth) {
-  var simpleStairs = new BABYLON.Mesh(name);
+function createStairs(name, limitLeft, limitRight, visibleWalls) {
+  var stairs = new BABYLON.Mesh(name);
   var box;
   var posY = 0;
   var posZ = 0;
 
-  for (var i = 0; i < steps; i++) {
+  for (var i = 0; i < 5; i++) {
     box = BABYLON.MeshBuilder.CreateBox(
       "box",
-      { height: height, width: width, depth: depth },
+      { height: 0.5, width: 1.5, depth: 0.5 },
       scene
     );
     box.position.y = posY;
     box.position.z = posZ;
     box.material = createTexture("textures/wood2.jpg");
     box.physicsImpostor = makePhysicsObject(box, "box", 0, scene);
-    simpleStairs.addChild(box);
+    stairs.addChild(box);
 
-    posY -= height;
-    posZ -= depth;
+    if (limitLeft) {
+      var leftBox = new BABYLON.MeshBuilder.CreateBox(
+        "box",
+        {
+          width: 0.1,
+          height: 1,
+          depth: 1,
+        },
+        scene
+      );
+      leftBox.position.x -= 0.85;
+      leftBox.position.y = posY;
+      leftBox.position.z = posZ;
+      leftBox.material = createTexture("textures/wood1.jpg");
+      leftBox.visibility = visibleWalls;
+      leftBox.physicsImpostor = makePhysicsObject(leftBox, "box", 0, scene);
+      stairs.addChild(leftBox);
+    }
+
+    if (limitRight) {
+      var rightBox = new BABYLON.MeshBuilder.CreateBox(
+        "box",
+        {
+          width: 0.1,
+          height: 1,
+          depth: 1,
+        },
+        scene
+      );
+      rightBox.position.x = 0.85;
+      rightBox.position.y = posY;
+      rightBox.position.z = posZ;
+      rightBox.material = createTexture("textures/wood1.jpg");
+      rightBox.visibility = visibleWalls;
+      rightBox.physicsImpostor = makePhysicsObject(rightBox, "box", 0, scene);
+      stairs.addChild(rightBox);
+    }
+
+    posY -= 0.5;
+    posZ -= 0.5;
   }
 
-  return simpleStairs;
+  return stairs;
 }
 
 // Cria uma escada de cilindros com a quantidade de degraus específicada e a distância entre eles
@@ -428,21 +512,15 @@ function createRoundedStairs(name, steps, zDistance) {
   return roundedStairs;
 }
 
-// Cria a textura para o objeto
-function createTexture(path) {
-  const material = new BABYLON.StandardMaterial("texture");
-  material.diffuseTexture = new BABYLON.Texture(path);
-  return material;
-}
-
-function fountain(posX,posY,posZ){
+// Cria um modelo de fonte com partículas
+function createFountain(posX, posY, posZ) {
   var particle = new BABYLON.ParticleSystem("particles", 5000);
 
-  //Texture of each particle
+  //Textura da partícula
   particle.particleTexture = new BABYLON.Texture("textures/flare.png");
 
-  // Where the particles come from
-  particle.emitter = new BABYLON.Vector3(0+posX, 0.8+posY, 0+posZ); // emitted from the top of the fountain
+  // Posição das partículas
+  particle.emitter = new BABYLON.Vector3(0 + posX, 0.8 + posY, 0 + posZ); // emitted from the top of the fountain
   particle.minEmitBox = new BABYLON.Vector3(-0.01, 0, -0.01); // Starting all from
   particle.maxEmitBox = new BABYLON.Vector3(0.01, 0, 0.01); // To...
 
@@ -468,87 +546,107 @@ function fountain(posX,posY,posZ){
   particle.maxEmitPower = 0.6;
   particle.updateSpeed = 0.01;
 
+  // Linhas para as coordenadas para a criação da fonte
   var fountainProfile = [
-      new BABYLON.Vector3(0, 0, 0),
-      new BABYLON.Vector3(0.5, 0, 0),
-      new BABYLON.Vector3(0.5, 0.2, 0),
-      new BABYLON.Vector3(0.4, 0.2, 0),
-      new BABYLON.Vector3(0.4, 0.05, 0),
-      new BABYLON.Vector3(0.05, 0.1, 0),
-      new BABYLON.Vector3(0.05, 0.8, 0),
-      new BABYLON.Vector3(0.15, 0.9, 0)
+    new BABYLON.Vector3(0, 0, 0),
+    new BABYLON.Vector3(0.5, 0, 0),
+    new BABYLON.Vector3(0.5, 0.2, 0),
+    new BABYLON.Vector3(0.4, 0.2, 0),
+    new BABYLON.Vector3(0.4, 0.05, 0),
+    new BABYLON.Vector3(0.05, 0.1, 0),
+    new BABYLON.Vector3(0.05, 0.8, 0),
+    new BABYLON.Vector3(0.15, 0.9, 0),
   ];
-  
-  var fountain = BABYLON.MeshBuilder.CreateLathe("fountain", {shape: fountainProfile, sideOrientation: BABYLON.Mesh.DOUBLESIDE});
+
+  // Criação da fonte
+  var fountain = BABYLON.MeshBuilder.CreateLathe("fountain", {
+    shape: fountainProfile,
+    sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+  });
   fountain.position.x = posX;
   fountain.position.y = posY;
   fountain.position.z = posZ;
 
-  var w = BABYLON.MeshBuilder.CreateCylinder("water", {diameter: 0.8, height:0.1}, scene);
-  var mat = new BABYLON.StandardMaterial("water", scene);
-  mat.diffuseTexture = new BABYLON.Texture("textures/water.jpg", scene);
-  w.material = mat;
+  var water = BABYLON.MeshBuilder.CreateCylinder(
+    "water",
+    { diameter: 0.8, height: 0.1 },
+    scene
+  );
+  var material = new BABYLON.StandardMaterial("water", scene);
+  material.diffuseTexture = new BABYLON.Texture("textures/water.jpg", scene);
+  water.material = material;
 
-  w.position.x = posX;
-  w.position.y = posY+0.1;
-  w.position.z = posZ;
+  water.position.x = posX;
+  water.position.y = posY + 0.1;
+  water.position.z = posZ;
 
   particle.start();
 }
 
-function seesaw(scale, posX, posY, posZ) {
-  var b = BABYLON.MeshBuilder.CreateBox("topoFundo", {
-    width: 7 * scale,
+// Criação da gangorra com uma junta
+function createSeeSaw(scale, posX, posY, posZ) {
+  var seeSaw = new BABYLON.Mesh("seeSaw");
+
+  // Criação da tábua
+  var board = BABYLON.MeshBuilder.CreateBox("board", {
+    width: 3 * scale,
     height: 0.2 * scale,
-    depth: 1 * scale,
+    depth: scale / 2,
   });
-  b.position.x = posX;
-  b.position.y = posY;
-  b.position.z = posZ;
-  b.PhysicsImpostor = new BABYLON.PhysicsImpostor(
-    b,
+  board.position.x = posX;
+  board.position.y = posY;
+  board.position.z = posZ;
+  board.PhysicsImpostor = new BABYLON.PhysicsImpostor(
+    board,
     BABYLON.PhysicsImpostor.BoxImpostor,
     { mass: 2 },
     scene
   );
-  //b.rotation.x+=Math.PI/2
+  board.material = createTexture("textures/wood2.jpg");
+  seeSaw.addChild(board);
 
-  var mat = new BABYLON.StandardMaterial("metalic", scene);
-  mat.diffuseTexture = new BABYLON.Texture("textures/wood2.jpg", scene);
-  b.material = mat;
-
-  var c = BABYLON.MeshBuilder.CreateBox("topoFundo", {
-    width: 1 * scale,
-    height: 1 * scale,
-    depth: 1 * scale,
+  var joint = BABYLON.MeshBuilder.CreateCylinder("joint", {
+    height: scale / 2,
+    diameter: scale / 3.5,
   });
-  c.position.x = posX;
-  c.position.y = posY - 1;
-  c.position.z = posZ;
-  c.rotation.x += Math.PI / 4;
-  c.rotation.y += Math.PI / 2;
-
-  c.PhysicsImpostor = new BABYLON.PhysicsImpostor(
-    c,
+  joint.position.x = posX;
+  joint.position.y = posY - 1;
+  joint.position.z = posZ;
+  joint.rotation.x = Math.PI / 2;
+  joint.material = createTexture("textures/metal.jpg");
+  joint.PhysicsImpostor = new BABYLON.PhysicsImpostor(
+    joint,
     BABYLON.PhysicsImpostor.BoxImpostor,
     { mass: 0 },
     scene
   );
+  seeSaw.addChild(joint);
 
-  var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.HingeJoint, {
+  var jointPhysic = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.HingeJoint, {
     mainPivot: new BABYLON.Vector3(0, 0, 0),
     connectedPivot: new BABYLON.Vector3(0, -1, 0),
     mainAxis: new BABYLON.Vector3(0, 0, 0),
     connectedAxis: new BABYLON.Vector3(0, 0, 1),
   });
 
-  c.PhysicsImpostor.addJoint(b.PhysicsImpostor, joint);
+  joint.PhysicsImpostor.addJoint(board.PhysicsImpostor, jointPhysic);
+
+  var ground = new BABYLON.MeshBuilder.CreateBox("ground", {
+    width: 3 * scale,
+    height: 0.1 * scale,
+    depth: scale / 2,
+  });
+  ground.position.x = posX;
+  ground.position.y = posY - 1.5;
+  ground.position.z = posZ;
+  ground.visibility = false;
+  ground.physicsImpostor = makePhysicsObject(ground, "box", 0, scene);
+  seeSaw.addChild(ground);
+
+  return seeSaw;
 }
 
-function domino(scale, posX, posY, posZ) {
-  var material = new BABYLON.StandardMaterial("dominoTexture");
-  material.diffuseTexture = new BABYLON.Texture("/textures/domino.png");
-
+function createDomino(scale, posX, posY, posZ) {
   const faceUV = [];
   faceUV[2] = new BABYLON.Vector4(0.0, 0.0, 1.0, 1.0); //rear face
   faceUV[3] = new BABYLON.Vector4(0.0, 0.0, 1.0, 1.0); //front face
@@ -569,134 +667,128 @@ function domino(scale, posX, posY, posZ) {
   domino.position.y = posY + scale;
   domino.position.z = posZ;
 
-  domino.material = material;
+  domino.material = createTexture("textures/domino.png");
 
   domino.physicsImpostor = new BABYLON.PhysicsImpostor(
     domino,
     BABYLON.PhysicsImpostor.BoxImpostor,
-    { mass: 1 },
+    { mass: scale / 4 },
     scene
   );
 }
 
-function baloon(scale,posX,posY,posZ){
-  var baloons = []
-     var b = BABYLON.MeshBuilder.CreateSphere("balao",{
-     diameter:1*scale,
-     segments:32 
- });
+function createBaloon(scale, posX, posY, posZ) {
+  var baloon = new BABYLON.Mesh("baloon");
 
- b.position.x = posX;
- b.position.y = posY;
- b.position.z = posZ;
- 
- //pontos
- const p = [
-     //ponto inicio
-     new BABYLON.Vector3(
-         b.position.x,
-         b.position.y-(scale/2),//inicia na base da esfera
-         b.position.z
-         ),
-     //ponto fim
-     new BABYLON.Vector3(
-         b.position.x,
-         b.position.y-5,//comprimento da linha
-         b.position.z
-         )
- ]
+  // Criação do balão
+  var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {
+    diameter: 1 * scale,
+    segments: 32,
+  });
 
- var wire = BABYLON.MeshBuilder.CreateLines("wire",{points:p});
+  sphere.position.x = posX;
+  sphere.position.y = posY;
+  sphere.position.z = posZ;
 
- //materiais e transparencias(alpha)
- var n = Math.random()*10;
- var mat = new BABYLON.StandardMaterial("material", scene);
- if(n<=3){
-     mat.diffuseColor = new BABYLON.Color3(1, 0, 0);//vemelho
-     mat.alpha = 0.7;	
-     b.material = mat;
- }
- else if(n>3 && n<=7){
-     mat.diffuseColor = new BABYLON.Color3(0, 1, 0);//verde
-     mat.alpha = 0.7;	
-     b.material = mat;
- }else{
-     mat.diffuseColor = new BABYLON.Color3(0, 0, 1);//azul
-     mat.alpha = 0.7;
-     b.material = mat;
- }
- var c = new BABYLON.Mesh("composition");
- c.addChild(b)
- c.addChild(wire)
- c = baloonAnimation(c);
- return c;
-}
+  // Pontos para a linha do balão
+  const wirePoints = [
+    // Ponto Inicial
+    new BABYLON.Vector3(
+      sphere.position.x,
+      sphere.position.y - scale / 2, // Inicia na base da esfera
+      sphere.position.z
+    ),
+    // Ponto final
+    new BABYLON.Vector3(
+      sphere.position.x,
+      sphere.position.y - scale, // Altura da linha
+      sphere.position.z
+    ),
+  ];
 
-//Set baloon animation
-function baloonAnimation(b){
- const frameRate  = 60;
- const yPos = new BABYLON.Animation("yPos", "position.y", frameRate, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE); //CONSTANT
- const keyFrames = []; 
- 
- keyFrames.push({
-     frame: 0,
-     value: 0
- });
+  var wire = BABYLON.MeshBuilder.CreateLines("wire", { points: wirePoints });
 
- keyFrames.push({
-     frame: frameRate,
-     value: 10
- });
- keyFrames.push({
-     frame: frameRate*2,
-     value: 20
- });
- yPos.setKeys(keyFrames);
+  // Materiais e transparência
+  var color = Math.random() * 10;
+  var material = new BABYLON.StandardMaterial("material", scene);
 
- b.animations.push(yPos);
- //scene.beginAnimation(b, 0,2*frameRate, true);
- return b;
-}
-//waterfall
-function waterfall(size){
-  for(var i=0;i<size;i++){
-      var particleSystem = new BABYLON.ParticleSystem("particles", 5000, scene);
-
-      particleSystem.particleTexture = new BABYLON.Texture("textures/flare.png", scene);
-
-      particleSystem.emitter = new BABYLON.Vector3(0, 10, 0+i); // the starting object, the emitter
-      particleSystem.minEmitBox = new BABYLON.Vector3(-1, 0, 0); // Starting all from
-      particleSystem.maxEmitBox = new BABYLON.Vector3(1, 0, 0); // To...
-
-      particleSystem.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 1.0);
-      particleSystem.color2 = new BABYLON.Color4(0.2, 0.5, 1.0, 1.0);
-      particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.8, 9.0);
-
-      particleSystem.minSize = 0.1;
-      particleSystem.maxSize = 0.5;
-
-      particleSystem.minLifeTime = 2;
-      particleSystem.maxLifeTime = 3.5;
-
-      particleSystem.emitRate = 300;
-
-      particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
-
-      particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
-
-      particleSystem.direction1 = new BABYLON.Vector3(-2, -8, 2);
-      particleSystem.direction2 = new BABYLON.Vector3(0, -8, -0);
-
-      particleSystem.minAngularSpeed = 0;
-      particleSystem.maxAngularSpeed = Math.PI;
-
-      particleSystem.minEmitPower = 1;
-      particleSystem.maxEmitPower = 3;
-      particleSystem.updateSpeed = 0.025;
-      particleSystem.start();
+  if (color <= 3) {
+    material.diffuseColor = new BABYLON.Color3(1, 0, 0); // Vermelho
+    material.alpha = 0.7;
+    sphere.material = material;
+  } else if (color > 3 && color <= 7) {
+    material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Verde
+    material.alpha = 0.7;
+    sphere.material = material;
+  } else {
+    material.diffuseColor = new BABYLON.Color3(0, 0, 1); // Azul
+    material.alpha = 0.7;
+    sphere.material = material;
   }
+
+  baloon.addChild(sphere);
+  baloon.addChild(wire);
+
+  return baloon;
 }
 
+function createTube(name, length, radius, segments) {
+  const paths = [];
+  for (let t = -length; t <= length; t++) {
+    const path = [];
+    for (let a = 0; a < 2 * Math.PI; a += Math.PI / segments) {
+      let x = radius * Math.cos(a);
+      let y = radius * Math.sin(a);
+      let z = t;
+      path.push(new BABYLON.Vector3(x, y, z));
+    }
+    path.push(path[0]); // close circle
+    paths.push(path);
+  }
+
+  const tube = BABYLON.MeshBuilder.CreateRibbon(name, {
+    pathArray: paths,
+    sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+  });
+  tube.material = createTexture("textures/wood2.jpg");
+  tube.physicsImpostor = makePhysicsObject(tube, "mesh", 0, scene);
+
+  return tube;
+}
+
+function createSpiralTube(name, height, radius, curvature) {
+  const points = [];
+  const stepSize = height / curvature;
+
+  for (let i = -height / 2; i < height / 2; i += stepSize) {
+    points.push(
+      new BABYLON.Vector3(
+        5 * Math.sin((i * curvature) / 400),
+        i,
+        5 * Math.cos((i * curvature) / 400)
+      )
+    );
+  }
+
+  const spiralTube = BABYLON.MeshBuilder.CreateTube(
+    name,
+    { path: points, radius: radius, sideOrientation: BABYLON.Mesh.DOUBLESIDE },
+    scene
+  );
+  spiralTube.material = createTexture("textures/wood2.jpg");
+  spiralTube.physicsImpostor = makePhysicsObject(spiralTube, "mesh", 0, scene);
+
+  return spiralTube;
+}
+/********** Fim dos modelos **********/
+
+/******** Início das funções auxiliares */
+// Cria a textura para o objeto
+function createTexture(path) {
+  const material = new BABYLON.StandardMaterial("texture");
+  material.diffuseTexture = new BABYLON.Texture(path);
+  return material;
+}
 
 // Cria a física do objeto
 var makePhysicsObject = (object, type, mass, scene) => {
@@ -711,6 +803,13 @@ var makePhysicsObject = (object, type, mass, scene) => {
     object.physicsImpostor = new BABYLON.PhysicsImpostor(
       object,
       BABYLON.PhysicsImpostor.BoxImpostor,
+      { mass: mass, friction: 0.5, restitution: 0.7 },
+      scene
+    );
+  } else if (type == "cylinder") {
+    object.physicsImpostor = new BABYLON.PhysicsImpostor(
+      object,
+      BABYLON.PhysicsImpostor.CylinderImpostor,
       { mass: mass, friction: 0.5, restitution: 0.7 },
       scene
     );
@@ -756,7 +855,9 @@ function getMeshesPosAndRot(meshes, axis, get) {
 
   return positions;
 }
+/********** Fim das funções auxiliares **********/
 
+/********** Início das Animações **********/
 // Animação de contração para a mesh especificada
 function contractAnimation(meshes, axis, seconds) {
   var firstCount =
@@ -850,3 +951,294 @@ function rotationAnimation(meshes, axis, frames, rotationIncrement, loop) {
   animation.setKeys(keyFrames);
   scene.beginDirectAnimation(meshes, [animation], 0, (frames - 1) * 5, true);
 }
+
+// Cria e inicia a animação do balão
+function baloonAnimation(mesh) {
+  var animation = new BABYLON.Animation(
+    "baloonAnimation",
+    "position.y",
+    4,
+    BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+    BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+  ); //CONSTANT
+  var keyFrames = [];
+  var frame = 0;
+  var position = -30;
+
+  for (i = 0; i < 12; i++) {
+    keyFrames.push({
+      frame: frame,
+      value: (position += i),
+    });
+    frame += 5;
+  }
+
+  animation.setKeys(keyFrames);
+
+  scene.beginDirectAnimation(mesh, [animation], 0, frame, true);
+}
+
+// Cria e inicia a animação da cachoeira
+function waterfallAnimation(size) {
+  for (var i = 0; i < size; i++) {
+    var particleSystem = new BABYLON.ParticleSystem("particles", 1000, scene);
+
+    particleSystem.particleTexture = new BABYLON.Texture(
+      "textures/flare.png",
+      scene
+    );
+
+    particleSystem.emitter = new BABYLON.Vector3(0, 10, 0 + i); // the starting object, the emitter
+    particleSystem.minEmitBox = new BABYLON.Vector3(-2, 0, 0); // Starting all from
+    particleSystem.maxEmitBox = new BABYLON.Vector3(2, 0, 0); // To...
+
+    particleSystem.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 1.0);
+    particleSystem.color2 = new BABYLON.Color4(0.2, 0.5, 1.0, 1.0);
+    particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.8, 9.0);
+
+    particleSystem.minSize = 0.1;
+    particleSystem.maxSize = 0.5;
+
+    particleSystem.minLifeTime = 2;
+    particleSystem.maxLifeTime = 3.5;
+
+    particleSystem.emitRate = 300;
+
+    particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+
+    particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+
+    particleSystem.direction1 = new BABYLON.Vector3(-2, -8, 2);
+    particleSystem.direction2 = new BABYLON.Vector3(0, -8, -0);
+
+    particleSystem.minAngularSpeed = 0;
+    particleSystem.maxAngularSpeed = Math.PI;
+
+    particleSystem.minEmitPower = 1;
+    particleSystem.maxEmitPower = 3;
+    particleSystem.updateSpeed = 0.025;
+    particleSystem.start();
+  }
+
+  return particleSystem;
+}
+/********** Fim das animações **********/
+
+/********** Início dos conjuntos de modelos **********/
+// Criação do modelo três rampas
+function createFirstModel(name, visibleWalls) {
+  var firstModel = new BABYLON.Mesh(name);
+
+  var firstRamp = createPlatform(
+    "firstRamp",
+    1.5,
+    6,
+    true,
+    true,
+    false,
+    false,
+    visibleWalls
+  );
+  firstRamp.rotation.x = -0.4;
+  firstModel.addChild(firstRamp);
+
+  var firstPlatform = createPlatform(
+    "firstPlatform",
+    2,
+    5,
+    false,
+    true,
+    true,
+    true,
+    visibleWalls
+  );
+  firstPlatform.rotation.x = 0.25;
+  firstPlatform.rotation.y = Math.PI / 2;
+  firstPlatform.rotation.z = 0.2;
+  firstPlatform.position.x = 1.5;
+  firstPlatform.position.y = -2;
+  firstPlatform.position.z = -3.95;
+  firstModel.addChild(firstPlatform);
+
+  var secondRamp = createPlatform(
+    "secondRamp",
+    2,
+    6,
+    true,
+    true,
+    false,
+    false,
+    visibleWalls
+  );
+  secondRamp.rotation.x = 0.4;
+  secondRamp.position.x = 3;
+  secondRamp.position.y = -4.25;
+  firstModel.addChild(secondRamp);
+
+  var secondPlatform = createPlatform(
+    "secondPlatform",
+    2,
+    5,
+    false,
+    true,
+    true,
+    true,
+    visibleWalls
+  );
+  secondPlatform.rotation.x = 0.25;
+  secondPlatform.rotation.y = -Math.PI / 2;
+  secondPlatform.rotation.z = 0.2;
+  secondPlatform.position.x = 1.5;
+  secondPlatform.position.y = -6.25;
+  secondPlatform.position.z = 3.95;
+  firstModel.addChild(secondPlatform);
+
+  firstModel.rotation.y = 0.4;
+  firstModel.position.x -= 4.05;
+  firstModel.position.y -= 4.3;
+  firstModel.position.z -= 9.65;
+
+  return firstModel;
+}
+
+// Criação do modelo três escadas
+function createSecondModel(name, visibleWalls) {
+  var secondModel = new BABYLON.Mesh(name);
+
+  var firstStair = createStairs("firstStair", true, true, visibleWalls);
+  secondModel.addChild(firstStair);
+
+  var firstPlatform = createPlatform(
+    "firstPlatform",
+    2,
+    4,
+    false,
+    true,
+    true,
+    true,
+    visibleWalls
+  );
+  firstPlatform.rotation.x = 0.1;
+  firstPlatform.rotation.y = Math.PI / 2;
+  firstPlatform.rotation.z = 0.1;
+  firstPlatform.position.x = 1.15;
+  firstPlatform.position.y = -2.15;
+  firstPlatform.position.z = -3.35;
+  secondModel.addChild(firstPlatform);
+
+  var secondStair = createStairs("secondStair", true, true, visibleWalls);
+  secondStair.rotation.y = Math.PI;
+  secondStair.position.x = 2.35;
+  secondStair.position.y = -2.65;
+  secondStair.position.z = -1.75;
+  secondModel.addChild(secondStair);
+
+  var secondPlatform = createPlatform(
+    "secondPlatform",
+    2,
+    4,
+    false,
+    true,
+    true,
+    true,
+    visibleWalls
+  );
+  secondPlatform.rotation.x = 0.15;
+  secondPlatform.rotation.y = -Math.PI / 2;
+  secondPlatform.rotation.z = 0.1;
+  secondPlatform.position.x = 1.4;
+  secondPlatform.position.y = -4.95;
+  secondPlatform.position.z = 1.5;
+  secondModel.addChild(secondPlatform);
+
+  secondModel.rotation.y = -0.4;
+  secondModel.position.x = 3.14;
+  secondModel.position.y -= 3.3;
+  secondModel.position.z -= 7.45;
+
+  return secondModel;
+}
+
+function createThirdModel(name, visibleWalls) {
+  var thirdModel = new BABYLON.Mesh(name);
+
+  var quantity = 24;
+
+  var angle = 0;
+  var incAngle = Math.PI / (quantity / 2);
+  var radius = 1;
+  var x = 0;
+  var y = 0;
+  var z = 0;
+
+  for (i = 0; i < quantity; i++) {
+    x += Math.cos(angle) * radius;
+    z -= Math.sin(angle) * radius;
+
+    var platform = createPlatform(
+      "platform",
+      1.5,
+      2,
+      false,
+      false,
+      true,
+      true,
+      visibleWalls
+    );
+    platform.rotation.y = angle + 0.1;
+    platform.rotation.z -= 0.3;
+    platform.position.x = x;
+    platform.position.y = y;
+    platform.position.z = z;
+
+    angle = angle + incAngle;
+    y -= 0.35;
+
+    thirdModel.addChild(platform);
+  }
+
+  var baloon = createBaloon(quantity / 6, x, 0, -z - quantity / 6);
+  thirdModel.addChild(baloon);
+  baloonAnimation(baloon);
+
+  var ramp = createPlatform(
+    "ramp",
+    1.5,
+    5,
+    true,
+    true,
+    false,
+    false,
+    visibleWalls
+  );
+  ramp.rotation.x = 0.4;
+  ramp.rotation.y = 1.65;
+  ramp.position.x -= 2;
+  ramp.position.y += 1.15;
+  ramp.position.z += 0.25;
+  thirdModel.addChild(ramp);
+
+  thirdModel.rotation.y = 0.33;
+  thirdModel.position.x += 11;
+  thirdModel.position.y -= 5.23;
+  thirdModel.position.z -= 4.65;
+
+  return thirdModel;
+}
+
+function createFourthModel(name) {
+  var fourthModel = new BABYLON.Mesh(name);
+
+  var spiralTube = createSpiralTube("spiralTube", 20, 1, 100);
+  fourthModel.addChild(spiralTube);
+
+  //waterfallAnimation(2);
+
+  fourthModel.rotation.y -= 2.75;
+  fourthModel.position.x -= 6;
+  fourthModel.position.y -= 12.5;
+  fourthModel.position.z -= 8;
+
+  return fourthModel;
+}
+/********** Fim dos conjuntos de modelos **********/
