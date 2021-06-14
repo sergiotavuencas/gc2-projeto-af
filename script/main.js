@@ -143,6 +143,9 @@ function createRubeGoldbergMachine(visibleWalls) {
   var fourthModel = createFourthModel("fourthModel");
   rubeGoldbergMachine.addChild(fourthModel);
 
+  var fifthModel = createFifthModel("fifthModel");
+  rubeGoldbergMachine.addChild(fifthModel);
+
   return rubeGoldbergMachine;
 }
 
@@ -581,6 +584,133 @@ function createFountain(posX, posY, posZ) {
   water.position.z = posZ;
 
   particle.start();
+}
+function pinbox(){
+  //objetos
+
+
+  //base de madeira
+  var base = BABYLON.MeshBuilder.CreateBox("base", {
+    width: 7,
+    height: 12,
+    depth: 0.5,
+  });
+  //alinhamento com saida
+  base.rotation.y = Math.PI/1.6;
+  
+  base.position.x = -7.5;
+  base.position.y = -9.2;
+  base.position.z = 3.2;
+
+  //Vidro da frente
+  var glass = BABYLON.MeshBuilder.CreateBox("frontGlass", {
+    width: 7,
+    height: 12,
+    depth: 0.5,
+  });
+  //alinhamento com saida
+  glass.rotation.y = Math.PI/1.6;
+  
+  glass.position.x = -10;
+  glass.position.y = -9.2;
+  glass.position.z = 4;
+
+  var side1 = BABYLON.MeshBuilder.CreateBox("side1", {
+    width: 0.2,
+    height: 12,
+    depth: 3,
+  });
+  
+  side1.rotation.y = Math.PI/1.6;
+  side1.position.x = -7.5;
+  side1.position.y = -9.2;
+  side1.position.z = 6.8;
+
+  var side2 = side1.clone("side2");
+  side2.position.x += -2.6;
+  side2.position.y += 0;
+  side2.position.z += -6.2;
+
+  var bottom1 = BABYLON.MeshBuilder.CreateBox("b1", {
+    width: 0.2,
+    height: 2.5,
+    depth: 3,
+  });
+  bottom1.position.x += -8.0;
+  bottom1.position.y += -14.2;
+  bottom1.position.z += 5.5;
+
+  bottom1.rotation.z = Math.PI/4;
+  bottom1.rotation.y = Math.PI/1.6;
+
+  var bottom2 = bottom1.clone("bottom2"); 
+  bottom2.position.x = -9.7;
+  bottom2.position.y = -14.2;
+  bottom2.position.z = 1.4;
+
+  bottom2.rotation.z = -Math.PI/4;
+   
+  var pin = BABYLON.MeshBuilder.CreateCylinder(
+    "pin",
+    { diameter: 0.5, height: 1.5 },
+    scene
+  );
+  pin.rotation.x+= Math.PI/2;
+  pin.rotation.y+= Math.PI/1.6;
+  
+  pin.position.x = -9;
+  pin.position.y = -9.2;
+  pin.position.z = 4;
+
+  var pin1=pin.clone("pin1");
+  pin1.position.y+=2.4;
+  pin1.position.z+=1.5;
+  pin1.position.x+=0.7;
+  var pin2=pin.clone("pin2");
+  pin2.position.y+=2.4;
+  pin2.position.z-=1.5;
+  
+  var pin3=pin.clone("pin3");
+  pin3.position.y-=2.4;
+  pin3.position.z-=1.5;
+  var pin4=pin.clone("pin4");
+  pin4.position.y-=2.4;
+  pin4.position.z+=1.5;
+  pin4.position.x+=0.7;
+  var pin5=pin.clone("pin5");
+  pin5.position.y+=5;
+  pin5.position.z-=0;
+
+
+  //materiais
+  glassTexture = createTexture("textures/glass.jpg");
+  glassTexture.alpha = 0.3;
+  glass.material = glassTexture;
+  
+  base.material = createTexture("textures/wood2.jpg");
+
+  side1.material = createTexture("textures/wood1.jpg");
+  side2.material = createTexture("textures/wood1.jpg");
+
+  bottom1.material = createTexture("textures/wood1.jpg");
+  bottom2.material = createTexture("textures/wood1.jpg");
+  
+  //physics
+  glass.physicsImpostor = makePhysicsObject(glass, "box", 0, scene);
+  base.physicsImpostor = makePhysicsObject(base, "box", 0, scene);
+  
+  side1.physicsImpostor = makePhysicsObject(side1, "box", 0, scene);
+  side2.physicsImpostor = makePhysicsObject(side2, "box", 0, scene);
+
+  pin.physicsImpostor = makePhysicsObject(pin, "cylinder", 0, scene);
+  pin1.physicsImpostor = makePhysicsObject(pin1, "cylinder", 0, scene);
+  pin2.physicsImpostor = makePhysicsObject(pin2, "cylinder", 0, scene);
+  pin3.physicsImpostor = makePhysicsObject(pin3, "cylinder", 0, scene);
+  pin4.physicsImpostor = makePhysicsObject(pin4, "cylinder", 0, scene);
+  pin5.physicsImpostor = makePhysicsObject(pin5, "cylinder", 0, scene);
+
+  bottom1.physicsImpostor = makePhysicsObject(bottom1, "box", 0, scene);
+  bottom2.physicsImpostor = makePhysicsObject(bottom2, "box", 0, scene);
 }
 
 // Criação da gangorra com uma junta
@@ -1240,5 +1370,13 @@ function createFourthModel(name) {
   fourthModel.position.z -= 8;
 
   return fourthModel;
+}
+
+function createFifthModel(name) {
+  var fifthModel = new BABYLON.Mesh(name);
+
+  pinbox()
+
+  return fifthModel;
 }
 /********** Fim dos conjuntos de modelos **********/
