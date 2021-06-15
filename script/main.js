@@ -146,19 +146,28 @@ function createRubeGoldbergMachine(visibleWalls) {
   var fifthModel = createFifthModel("fifthModel");
   rubeGoldbergMachine.addChild(fifthModel);
 
+  var sixthModel = createSixthModel("sixthModel", visibleWalls);
+  rubeGoldbergMachine.addChild(sixthModel);
+
+  var seventhModel = createSeventhModel("seventhModel", visibleWalls);
+  rubeGoldbergMachine.addChild(seventhModel);
+
+  var eighthModel = createEighthModel("eighthModel", visibleWalls);
+  rubeGoldbergMachine.addChild(eighthModel);
+
   return rubeGoldbergMachine;
 }
 
 function spawnMarbles(sphereBase, spawnSound, killBox) {
   var spawnPoints = [
-    new BABYLON.Vector3(0.25, 1, 0),
-    new BABYLON.Vector3(0, 1, 0.25),
-    new BABYLON.Vector3(-0.25, 1, 0),
-    new BABYLON.Vector3(0, 1, -0.25),
-    new BABYLON.Vector3(0.25, 1, 0.25),
-    new BABYLON.Vector3(-0.25, 1, 0.25),
-    new BABYLON.Vector3(0.25, 1, -0.25),
-    new BABYLON.Vector3(-0.25, 1, -0.25),
+    new BABYLON.Vector3(-0.8, 1, -0.3),
+    new BABYLON.Vector3(-0.4, 1, -0.6),
+    new BABYLON.Vector3(0.4, 1, -0.6),
+    new BABYLON.Vector3(0.8, 1, -0.3),
+    new BABYLON.Vector3(0.8, 1, 0.3),
+    new BABYLON.Vector3(0.4, 1, 0.6),
+    new BABYLON.Vector3(-0.4, 1, 0.6),
+    new BABYLON.Vector3(-0.8, 1, 0.3),
   ];
 
   setInterval(function () {
@@ -168,15 +177,17 @@ function spawnMarbles(sphereBase, spawnSound, killBox) {
     while (i--) {
       var marble = sphereBase.clone("sphere");
       marble.position = spawnPoints[pos++];
-      marble.material = marble.physicsImpostor = makePhysicsObject(
-        marble,
-        "sphere",
-        2
+      marble.material = createColor(
+        Math.random(),
+        Math.random(),
+        Math.random()
       );
+      marble.visibility = 0.8;
+      marble.physicsImpostor = makePhysicsObject(marble, "sphere", 2);
       marble.isVisible = true;
       spawnSound.play();
 
-      if (pos == 7) {
+      if (pos == 8) {
         pos = 0;
       }
 
@@ -248,7 +259,7 @@ function createStartModel(name) {
     new BABYLON.Vector3(0, 0, 0),
     new BABYLON.Vector3(5, 0, 0),
     new BABYLON.Vector3(5, 0.5, 0),
-    new BABYLON.Vector3(0, 0.5, 0),
+    new BABYLON.Vector3(0, 0.8, 0),
   ];
 
   //Create lathe
@@ -585,9 +596,8 @@ function createFountain(posX, posY, posZ) {
 
   particle.start();
 }
-function pinbox(){
+function pinbox() {
   //objetos
-
 
   //base de madeira
   var base = BABYLON.MeshBuilder.CreateBox("base", {
@@ -596,8 +606,8 @@ function pinbox(){
     depth: 0.5,
   });
   //alinhamento com saida
-  base.rotation.y = Math.PI/1.6;
-  
+  base.rotation.y = Math.PI / 1.6;
+
   base.position.x = -7.5;
   base.position.y = -9.2;
   base.position.z = 3.2;
@@ -609,8 +619,8 @@ function pinbox(){
     depth: 0.5,
   });
   //alinhamento com saida
-  glass.rotation.y = Math.PI/1.6;
-  
+  glass.rotation.y = Math.PI / 1.6;
+
   glass.position.x = -10;
   glass.position.y = -9.2;
   glass.position.z = 4;
@@ -620,8 +630,8 @@ function pinbox(){
     height: 12,
     depth: 3,
   });
-  
-  side1.rotation.y = Math.PI/1.6;
+
+  side1.rotation.y = Math.PI / 1.6;
   side1.position.x = -7.5;
   side1.position.y = -9.2;
   side1.position.z = 6.8;
@@ -640,53 +650,52 @@ function pinbox(){
   bottom1.position.y += -14.2;
   bottom1.position.z += 5.5;
 
-  bottom1.rotation.z = Math.PI/4;
-  bottom1.rotation.y = Math.PI/1.6;
+  bottom1.rotation.z = Math.PI / 4;
+  bottom1.rotation.y = Math.PI / 1.6;
 
-  var bottom2 = bottom1.clone("bottom2"); 
+  var bottom2 = bottom1.clone("bottom2");
   bottom2.position.x = -9.7;
   bottom2.position.y = -14.2;
   bottom2.position.z = 1.4;
 
-  bottom2.rotation.z = -Math.PI/4;
-   
+  bottom2.rotation.z = -Math.PI / 4;
+
   var pin = BABYLON.MeshBuilder.CreateCylinder(
     "pin",
     { diameter: 0.5, height: 1.5 },
     scene
   );
-  pin.rotation.x+= Math.PI/2;
-  pin.rotation.y+= Math.PI/1.6;
-  
+  pin.rotation.x += Math.PI / 2;
+  pin.rotation.y += Math.PI / 1.6;
+
   pin.position.x = -9;
   pin.position.y = -9.2;
   pin.position.z = 4;
 
-  var pin1=pin.clone("pin1");
-  pin1.position.y+=2.4;
-  pin1.position.z+=1.5;
-  pin1.position.x+=0.7;
-  var pin2=pin.clone("pin2");
-  pin2.position.y+=2.4;
-  pin2.position.z-=1.5;
-  
-  var pin3=pin.clone("pin3");
-  pin3.position.y-=2.4;
-  pin3.position.z-=1.5;
-  var pin4=pin.clone("pin4");
-  pin4.position.y-=2.4;
-  pin4.position.z+=1.5;
-  pin4.position.x+=0.7;
-  var pin5=pin.clone("pin5");
-  pin5.position.y+=5;
-  pin5.position.z-=0;
+  var pin1 = pin.clone("pin1");
+  pin1.position.y += 2.4;
+  pin1.position.z += 1.5;
+  pin1.position.x += 0.7;
+  var pin2 = pin.clone("pin2");
+  pin2.position.y += 2.4;
+  pin2.position.z -= 1.5;
 
+  var pin3 = pin.clone("pin3");
+  pin3.position.y -= 2.4;
+  pin3.position.z -= 1.5;
+  var pin4 = pin.clone("pin4");
+  pin4.position.y -= 2.4;
+  pin4.position.z += 1.5;
+  pin4.position.x += 0.7;
+  var pin5 = pin.clone("pin5");
+  pin5.position.y += 5;
+  pin5.position.z -= 0;
 
   //materiais
   glassTexture = createTexture("textures/glass.jpg");
   glassTexture.alpha = 0.3;
   glass.material = glassTexture;
-  
+
   base.material = createTexture("textures/wood2.jpg");
 
   side1.material = createTexture("textures/wood1.jpg");
@@ -694,11 +703,11 @@ function pinbox(){
 
   bottom1.material = createTexture("textures/wood1.jpg");
   bottom2.material = createTexture("textures/wood1.jpg");
-  
+
   //physics
   glass.physicsImpostor = makePhysicsObject(glass, "box", 0, scene);
   base.physicsImpostor = makePhysicsObject(base, "box", 0, scene);
-  
+
   side1.physicsImpostor = makePhysicsObject(side1, "box", 0, scene);
   side2.physicsImpostor = makePhysicsObject(side2, "box", 0, scene);
 
@@ -714,7 +723,7 @@ function pinbox(){
 }
 
 // Criação da gangorra com uma junta
-function createSeeSaw(scale, posX, posY, posZ) {
+function createSeeSaw(scale, posX, posY, posZ, rotY) {
   var seeSaw = new BABYLON.Mesh("seeSaw");
 
   // Criação da tábua
@@ -742,7 +751,7 @@ function createSeeSaw(scale, posX, posY, posZ) {
   joint.position.x = posX;
   joint.position.y = posY - 1;
   joint.position.z = posZ;
-  joint.rotation.x = Math.PI / 2;
+  joint.visibility = false;
   joint.material = createTexture("textures/metal.jpg");
   joint.PhysicsImpostor = new BABYLON.PhysicsImpostor(
     joint,
@@ -752,6 +761,20 @@ function createSeeSaw(scale, posX, posY, posZ) {
   );
   seeSaw.addChild(joint);
 
+  var ground = new BABYLON.MeshBuilder.CreateBox("ground", {
+    width: 3 * scale,
+    height: 0.1 * scale,
+    depth: 3 * scale,
+  });
+  ground.position.x = posX;
+  ground.position.y = posY - 1.5;
+  ground.position.z = posZ;
+  ground.visibility = false;
+  ground.physicsImpostor = makePhysicsObject(ground, "box", 0, scene);
+  seeSaw.addChild(ground);
+
+  seeSaw.rotation.y = rotY;
+
   var jointPhysic = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.HingeJoint, {
     mainPivot: new BABYLON.Vector3(0, 0, 0),
     connectedPivot: new BABYLON.Vector3(0, -1, 0),
@@ -760,18 +783,6 @@ function createSeeSaw(scale, posX, posY, posZ) {
   });
 
   joint.PhysicsImpostor.addJoint(board.PhysicsImpostor, jointPhysic);
-
-  var ground = new BABYLON.MeshBuilder.CreateBox("ground", {
-    width: 3 * scale,
-    height: 0.1 * scale,
-    depth: scale / 2,
-  });
-  ground.position.x = posX;
-  ground.position.y = posY - 1.5;
-  ground.position.z = posZ;
-  ground.visibility = false;
-  ground.physicsImpostor = makePhysicsObject(ground, "box", 0, scene);
-  seeSaw.addChild(ground);
 
   return seeSaw;
 }
@@ -920,13 +931,20 @@ function createTexture(path) {
   return material;
 }
 
+// Cria a cor para o objeto
+function createColor(red, green, blue) {
+  const material = new BABYLON.StandardMaterial("texture");
+  material.diffuseColor = new BABYLON.Color3(red, green, blue);
+  return material;
+}
+
 // Cria a física do objeto
 var makePhysicsObject = (object, type, mass, scene) => {
   if (type == "sphere") {
     object.physicsImpostor = new BABYLON.PhysicsImpostor(
       object,
       BABYLON.PhysicsImpostor.SphereImpostor,
-      { mass: mass, friction: 0.5, restitution: 0.7 },
+      { mass: mass, friction: 0.2, restitution: 0.7 },
       scene
     );
   } else if (type == "box") {
@@ -988,100 +1006,6 @@ function getMeshesPosAndRot(meshes, axis, get) {
 /********** Fim das funções auxiliares **********/
 
 /********** Início das Animações **********/
-// Animação de contração para a mesh especificada
-function contractAnimation(meshes, axis, seconds) {
-  var firstCount =
-    seconds * 1000; /* Recebe os segundos e converte para milisegundos */
-  var positions = getMeshesPosAndRot(
-    meshes,
-    axis,
-    "position"
-  ); /* Array com as posições ou rotação de cada mesh no eixo especificado */
-  var position =
-    axis == "y"
-      ? meshes.position.y
-      : meshes.position.z; /* Posição da mesh no eixo especificado */
-
-  var animation = new BABYLON.Animation(
-    "animation",
-    /* Posiciona de acordo com o eixo recebido */
-    axis == "y" ? "position.y" : "position.z",
-    100,
-    BABYLON.Animation.ANIMATIONTYPE_FLOAT,
-    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-  );
-
-  let keyFrames = [];
-  var frame = 0;
-
-  for (i = 4; i >= 0; i--) {
-    keyFrames.push({
-      frame: frame,
-      value: position / i,
-    });
-    frame += 5;
-  }
-  animation.setKeys(keyFrames);
-
-  /* Anima cada mesh dentro de um intervalo de tempo + 1 segundo */
-  meshes.getChildMeshes().forEach((mesh) => {
-    setTimeout(function () {
-      scene.beginDirectAnimation(mesh, [animation], 0, 15, true);
-    }, (firstCount += 1000));
-  });
-
-  var count = 0;
-  var secondCount = firstCount;
-
-  /* Retorna cada mesh para sua posição anterior após um período de tempo */
-  setTimeout(function () {
-    meshes.getChildMeshes().forEach((mesh) => {
-      if (axis == "y") {
-        mesh.position.y = positions[count];
-      } else {
-        mesh.position.z = positions[count];
-      }
-      count++;
-    });
-  }, (secondCount += 1000));
-}
-
-// Animação de rotação para a mesh especificada
-function rotationAnimation(meshes, axis, frames, rotationIncrement, loop) {
-  var animation = new BABYLON.Animation(
-    "animation",
-    /* Rotaciona de acordo com o eixo recebido */
-    axis == "x" ? "rotation.x" : axis == "y" ? "rotation.y" : "rotation.z",
-    100,
-    BABYLON.Animation.ANIMATIONTYPE_FLOAT,
-    /* Se loop for verdadeiro, a animação é contínua, senão para no último frame */
-    loop == true
-      ? BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
-      : BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-  );
-
-  let keyFrames = [];
-  var frame = 0;
-  var rotation = 0;
-
-  for (i = frames; i >= 0; i--) {
-    keyFrames.push({
-      frame: frame,
-      value:
-        /* Rotaciona de acordo com o eixo e a velocidade especificados */
-        axis == "x"
-          ? meshes.rotation.x + (rotation += rotationIncrement)
-          : axis == "y"
-          ? meshes.rotation.y + (rotation += rotationIncrement)
-          : meshes.rotation.z + (rotation += rotationIncrement),
-    });
-    frame += 5;
-  }
-
-  animation.setKeys(keyFrames);
-  scene.beginDirectAnimation(meshes, [animation], 0, (frames - 1) * 5, true);
-}
-
 // Cria e inicia a animação do balão
 function baloonAnimation(mesh) {
   var animation = new BABYLON.Animation(
@@ -1151,6 +1075,108 @@ function waterfallAnimation(size) {
   }
 
   return particleSystem;
+}
+
+// Cria a animação de rotação
+function rotationAnimation(mesh) {
+  var animation = new BABYLON.Animation(
+    "rotationAnimation",
+    "rotation.x",
+    4,
+    BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+    BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+  ); //CONSTANT
+  var keyFrames = [];
+  var frame = 0;
+  var rotation = 0;
+
+  for (i = 0; i < 5; i++) {
+    keyFrames.push({
+      frame: frame,
+      value: (rotation -= 0.1),
+    });
+    frame += 5;
+  }
+
+  for (i = 0; i < 5; i++) {
+    keyFrames.push({
+      frame: frame,
+      value: (rotation += 0.1),
+    });
+    frame += 5;
+  }
+
+  animation.setKeys(keyFrames);
+
+  scene.beginDirectAnimation(mesh, [animation], 0, frame, true);
+}
+
+// Cria a animação de movimentdação em Z
+function moveForwardAnimation(mesh, startPosition) {
+  var animation = new BABYLON.Animation(
+    "moveForwardAnimation",
+    "position.z",
+    4,
+    BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+    BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+  ); //CONSTANT
+  var keyFrames = [];
+  var frame = 0;
+  var position = startPosition;
+
+  for (i = 0; i < 10; i++) {
+    keyFrames.push({
+      frame: frame,
+      value: (position -= 0.1),
+    });
+    frame += 5;
+  }
+
+  for (i = 0; i < 10; i++) {
+    keyFrames.push({
+      frame: frame,
+      value: (position += 0.1),
+    });
+    frame += 5;
+  }
+
+  animation.setKeys(keyFrames);
+
+  scene.beginDirectAnimation(mesh, [animation], 0, frame, true);
+}
+
+// Cria a animação de movimentdação em Z
+function moveUpAnimation(mesh, startPosition) {
+  var animation = new BABYLON.Animation(
+    "moveUpAnimation",
+    "position.y",
+    4,
+    BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+    BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+  ); //CONSTANT
+  var keyFrames = [];
+  var frame = 0;
+  var position = startPosition;
+
+  for (i = 0; i < 10; i++) {
+    keyFrames.push({
+      frame: frame,
+      value: (position -= 0.1),
+    });
+    frame += 5;
+  }
+
+  for (i = 0; i < 10; i++) {
+    keyFrames.push({
+      frame: frame,
+      value: (position += 0.1),
+    });
+    frame += 5;
+  }
+
+  animation.setKeys(keyFrames);
+
+  scene.beginDirectAnimation(mesh, [animation], 0, frame, true);
 }
 /********** Fim das animações **********/
 
@@ -1362,12 +1388,10 @@ function createFourthModel(name) {
   var spiralTube = createSpiralTube("spiralTube", 20, 1, 100);
   fourthModel.addChild(spiralTube);
 
-  //waterfallAnimation(2);
-
   fourthModel.rotation.y -= 2.75;
   fourthModel.position.x -= 6;
   fourthModel.position.y -= 12.5;
-  fourthModel.position.z -= 8;
+  fourthModel.position.z -= 7.85;
 
   return fourthModel;
 }
@@ -1375,8 +1399,119 @@ function createFourthModel(name) {
 function createFifthModel(name) {
   var fifthModel = new BABYLON.Mesh(name);
 
-  pinbox()
+  pinbox();
 
   return fifthModel;
+}
+
+function createSixthModel(name, visibleWalls) {
+  var sixthModel = new BABYLON.Mesh(name);
+
+  var posY = 0;
+  var posZ = 0;
+
+  for (let i = 0; i < 10; i++) {
+    var platform = createPlatform(
+      "platform",
+      1.5,
+      1,
+      true,
+      true,
+      false,
+      false,
+      visibleWalls
+    );
+    platform.position.y = posY;
+    platform.position.z = posZ;
+    sixthModel.addChild(platform);
+
+    posY -= 0.5;
+    posZ -= 1;
+  }
+
+  sixthModel.rotation.y = 2.75;
+  sixthModel.position.x -= 3.15;
+  sixthModel.position.y -= 3.3;
+  sixthModel.position.z = 7.55;
+
+  sixthModel.getChildMeshes().forEach(function (mesh) {
+    rotationAnimation(mesh);
+  });
+
+  return sixthModel;
+}
+
+function createSeventhModel(name, visibleWalls) {
+  var seventhModel = new BABYLON.Mesh(name);
+
+  var posY = 0;
+  var posZ = 0;
+
+  for (let i = 0; i < 10; i++) {
+    var platform = createPlatform(
+      "platform",
+      1.5,
+      1,
+      true,
+      true,
+      false,
+      false,
+      visibleWalls
+    );
+    platform.position.y = posY;
+    platform.position.z = posZ;
+    seventhModel.addChild(platform);
+
+    posY -= 0.5;
+    posZ -= 1;
+  }
+
+  seventhModel.getChildMeshes().forEach(function (mesh) {
+    moveForwardAnimation(mesh, mesh.position.z);
+  });
+
+  seventhModel.rotation.y -= 2.75;
+  seventhModel.position.x = 3.15;
+  seventhModel.position.y -= 3.3;
+  seventhModel.position.z = 7.55;
+
+  return seventhModel;
+}
+
+function createEighthModel(name, visibleWalls) {
+  var eighthModel = new BABYLON.Mesh(name);
+
+  var posY = 0;
+  var posZ = 0;
+
+  for (let i = 0; i < 10; i++) {
+    var platform = createPlatform(
+      "platform",
+      1.5,
+      1,
+      true,
+      true,
+      false,
+      false,
+      visibleWalls
+    );
+    platform.position.y = posY;
+    platform.position.z = posZ;
+    eighthModel.addChild(platform);
+
+    posY -= 0.5;
+    posZ -= 1;
+  }
+
+  eighthModel.getChildMeshes().forEach(function (mesh) {
+    moveUpAnimation(mesh, mesh.position.y);
+  });
+
+  eighthModel.rotation.y -= 1.95;
+  eighthModel.position.x = 7.75;
+  eighthModel.position.y -= 3;
+  eighthModel.position.z = 3.15;
+
+  return eighthModel;
 }
 /********** Fim dos conjuntos de modelos **********/
